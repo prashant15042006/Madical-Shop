@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   Alert,
@@ -25,6 +26,7 @@ import {
   IMAGE_OPTIONS,
   MEDICINE_IMAGES,
   Medicine,
+  finalPrice,
 } from "@/constants/medicines";
 
 export default function ShopMedicines() {
@@ -50,7 +52,7 @@ export default function ShopMedicines() {
             <Text
               style={[styles.subtitle, { color: colors.mutedForeground }]}
             >
-              Medicine add karein, price aur stock update karein
+              Medicine add karein, price/discount/stock update karein
             </Text>
           </View>
         }
@@ -61,62 +63,98 @@ export default function ShopMedicines() {
             subtitle="Pehli medicine add karein"
           />
         }
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
+        renderItem={({ item }) => {
+          const final = finalPrice(item.price, item.discountPercent);
+          const hasDiscount = (item.discountPercent ?? 0) > 0;
+          return (
             <View
-              style={[styles.imageWrap, { backgroundColor: colors.secondary }]}
+              style={[
+                styles.row,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
             >
-              <Image
-                source={item.image}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-              />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text
-                style={[styles.name, { color: colors.foreground }]}
-                numberOfLines={1}
+              <View
+                style={[
+                  styles.imageWrap,
+                  { backgroundColor: colors.secondary },
+                ]}
               >
-                {item.name}
-              </Text>
-              <Text
-                style={[styles.meta, { color: colors.mutedForeground }]}
-                numberOfLines={1}
+                <Image
+                  source={item.image}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="cover"
+                />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text
+                  style={[styles.name, { color: colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceFinal, { color: colors.foreground }]}>
+                    ₹{final}
+                  </Text>
+                  {hasDiscount ? (
+                    <>
+                      <Text
+                        style={[
+                          styles.priceOld,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        ₹{item.price}
+                      </Text>
+                      <View
+                        style={[
+                          styles.discountTag,
+                          { backgroundColor: "#fee2e2" },
+                        ]}
+                      >
+                        <Text style={styles.discountTagText}>
+                          {item.discountPercent}% OFF
+                        </Text>
+                      </View>
+                    </>
+                  ) : null}
+                </View>
+                <Text
+                  style={[styles.metaSub, { color: colors.mutedForeground }]}
+                  numberOfLines={1}
+                >
+                  Stock {item.stock} · {item.otc ? "OTC" : "Rx"}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setEditing(item)}
+                hitSlop={6}
+                style={[
+                  styles.iconBtn,
+                  { backgroundColor: colors.secondary },
+                ]}
               >
-                ₹{item.price} · Stock {item.stock} ·{" "}
-                {item.otc ? "OTC" : "Rx"}
-              </Text>
+                <Feather name="edit-2" size={16} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Alert.alert("Confirm", `${item.name} hatana hai?`, [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Hatao",
+                      style: "destructive",
+                      onPress: () => removeMedicine(item.id),
+                    },
+                  ]);
+                }}
+                hitSlop={6}
+                style={[styles.iconBtn, { backgroundColor: "#fee2e2" }]}
+              >
+                <Feather name="trash-2" size={16} color={colors.destructive} />
+              </Pressable>
             </View>
-            <Pressable
-              onPress={() => setEditing(item)}
-              hitSlop={6}
-              style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
-            >
-              <Feather name="edit-2" size={16} color={colors.primary} />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                Alert.alert("Confirm", `${item.name} hatana hai?`, [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Hatao",
-                    style: "destructive",
-                    onPress: () => removeMedicine(item.id),
-                  },
-                ]);
-              }}
-              hitSlop={6}
-              style={[styles.iconBtn, { backgroundColor: "#fee2e2" }]}
-            >
-              <Feather name="trash-2" size={16} color={colors.destructive} />
-            </Pressable>
-          </View>
-        )}
+          );
+        }}
       />
 
       <Pressable
@@ -174,43 +212,76 @@ function EditSheet({
   const insets = useSafeAreaInsets();
   const [name, setName] = useState(medicine?.name ?? "");
   const [description, setDescription] = useState(medicine?.description ?? "");
-  const [price, setPrice] = useState(
-    medicine ? String(medicine.price) : "",
+  const [price, setPrice] = useState(medicine ? String(medicine.price) : "");
+  const [discount, setDiscount] = useState(
+    medicine ? String(medicine.discountPercent ?? 0) : "0",
   );
-  const [stock, setStock] = useState(
-    medicine ? String(medicine.stock) : "10",
-  );
+  const [stock, setStock] = useState(medicine ? String(medicine.stock) : "10");
   const [otc, setOtc] = useState(medicine?.otc ?? true);
   const [imageKey, setImageKey] = useState(
     medicine?.imageKey ?? "paracetamol",
   );
+  const [customImageUri, setCustomImageUri] = useState<string | null>(
+    medicine?.customImageUri ?? null,
+  );
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
+  const priceNum = Number(price) || 0;
+  const discountNum = Number(discount) || 0;
+  const previewFinal = finalPrice(priceNum, discountNum);
+
+  const pickCustomImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Permission chahiye",
+        "Apni medicine ki photo upload karne ke liye gallery ki permission de.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!res.canceled && res.assets[0]) {
+      setCustomImageUri(res.assets[0].uri);
+    }
+  };
 
   const submit = async () => {
-    const priceNum = Number(price);
-    const stockNum = Number(stock);
-    if (!name.trim() || !description.trim() || isNaN(priceNum) || priceNum <= 0) {
+    if (
+      !name.trim() ||
+      !description.trim() ||
+      isNaN(priceNum) ||
+      priceNum <= 0
+    ) {
       Alert.alert(
         "Details adhure",
         "Naam, description aur sahi price daale.",
       );
       return;
     }
+    if (discountNum < 0 || discountNum > 100) {
+      Alert.alert("Galat discount", "0 se 100 ke beech ka % daale.");
+      return;
+    }
+    const stockNum = Number(stock);
     await onSave({
       name: name.trim(),
       description: description.trim(),
       price: priceNum,
+      discountPercent: discountNum,
       stock: isNaN(stockNum) ? 0 : stockNum,
       otc,
       imageKey,
+      customImageUri,
     });
   };
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: colors.background }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
         style={[
           styles.sheetHeader,
@@ -236,6 +307,124 @@ function EditSheet({
         bottomOffset={20}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.switchLabel, { color: colors.foreground }]}>
+            Medicine ki photo
+          </Text>
+          <View style={styles.imageActions}>
+            <View
+              style={[
+                styles.previewBox,
+                { backgroundColor: colors.secondary },
+              ]}
+            >
+              <Image
+                source={
+                  customImageUri
+                    ? { uri: customImageUri }
+                    : MEDICINE_IMAGES[imageKey]
+                }
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
+            </View>
+            <View style={{ flex: 1, gap: 8 }}>
+              <Pressable
+                onPress={pickCustomImage}
+                style={({ pressed }) => [
+                  styles.uploadBtn,
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Feather
+                  name="upload"
+                  size={16}
+                  color={colors.primaryForeground}
+                />
+                <Text
+                  style={[
+                    styles.uploadBtnText,
+                    { color: colors.primaryForeground },
+                  ]}
+                >
+                  {customImageUri ? "Photo Badle" : "Photo Upload"}
+                </Text>
+              </Pressable>
+              {customImageUri ? (
+                <Pressable
+                  onPress={() => setCustomImageUri(null)}
+                  style={({ pressed }) => [
+                    styles.removeImgBtn,
+                    {
+                      borderColor: colors.destructive,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name="trash-2" size={14} color={colors.destructive} />
+                  <Text
+                    style={[
+                      styles.removeImgText,
+                      { color: colors.destructive },
+                    ]}
+                  >
+                    Hatao (preset use karein)
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+          {!customImageUri ? (
+            <>
+              <Text
+                style={[styles.helpText, { color: colors.mutedForeground }]}
+              >
+                Ya neeche se preset image choose karein:
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingVertical: 6 }}
+              >
+                {IMAGE_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => setImageKey(opt.key)}
+                    style={({ pressed }) => [
+                      styles.imgOption,
+                      {
+                        borderColor:
+                          imageKey === opt.key
+                            ? colors.primary
+                            : colors.border,
+                        backgroundColor: colors.card,
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={MEDICINE_IMAGES[opt.key]}
+                      style={styles.imgOptionImage}
+                      contentFit="cover"
+                    />
+                    <Text
+                      style={[
+                        styles.imgOptionLabel,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+        </View>
+
         <Field
           label="Medicine ka naam"
           value={name}
@@ -248,6 +437,7 @@ function EditSheet({
           onChange={setDescription}
           placeholder="Short description"
         />
+
         <View style={{ flexDirection: "row", gap: 12 }}>
           <View style={{ flex: 1 }}>
             <Field
@@ -260,14 +450,69 @@ function EditSheet({
           </View>
           <View style={{ flex: 1 }}>
             <Field
-              label="Stock"
-              value={stock}
-              onChange={setStock}
+              label="Discount (%)"
+              value={discount}
+              onChange={setDiscount}
               placeholder="0"
               keyboardType="numeric"
             />
           </View>
         </View>
+
+        {priceNum > 0 ? (
+          <View
+            style={[
+              styles.pricePreview,
+              {
+                backgroundColor: colors.accent,
+                borderColor: colors.primary,
+              },
+            ]}
+          >
+            <View>
+              <Text
+                style={[
+                  styles.previewLabel,
+                  { color: colors.accentForeground },
+                ]}
+              >
+                Final price (customer pays)
+              </Text>
+              <View style={styles.pricePreviewRow}>
+                <Text
+                  style={[styles.previewFinal, { color: colors.foreground }]}
+                >
+                  ₹{previewFinal}
+                </Text>
+                {discountNum > 0 ? (
+                  <Text
+                    style={[
+                      styles.previewOld,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    ₹{priceNum}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            {discountNum > 0 ? (
+              <View style={styles.savePill}>
+                <Text style={styles.savePillText}>
+                  Save ₹{(priceNum - previewFinal).toFixed(2)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        <Field
+          label="Stock"
+          value={stock}
+          onChange={setStock}
+          placeholder="0"
+          keyboardType="numeric"
+        />
 
         <View
           style={[
@@ -290,52 +535,6 @@ function EditSheet({
             onValueChange={setOtc}
             trackColor={{ true: colors.primary, false: colors.muted }}
           />
-        </View>
-
-        <View>
-          <Text
-            style={[
-              styles.switchLabel,
-              { color: colors.foreground, marginBottom: 8 },
-            ]}
-          >
-            Image type
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 10, paddingVertical: 6 }}
-          >
-            {IMAGE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.key}
-                onPress={() => setImageKey(opt.key)}
-                style={({ pressed }) => [
-                  styles.imgOption,
-                  {
-                    borderColor:
-                      imageKey === opt.key ? colors.primary : colors.border,
-                    backgroundColor: colors.card,
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}
-              >
-                <Image
-                  source={MEDICINE_IMAGES[opt.key]}
-                  style={styles.imgOptionImage}
-                  contentFit="cover"
-                />
-                <Text
-                  style={[
-                    styles.imgOptionLabel,
-                    { color: colors.foreground },
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
         </View>
 
         <PrimaryButton
@@ -363,8 +562,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   imageWrap: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     borderRadius: 999,
     overflow: "hidden",
   },
@@ -372,9 +571,35 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
   },
-  meta: {
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  priceFinal: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  priceOld: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    textDecorationLine: "line-through",
+  },
+  discountTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  discountTagText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+    color: "#dc2626",
+    letterSpacing: 0.4,
+  },
+  metaSub: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 11,
   },
   iconBtn: {
     width: 36,
@@ -430,6 +655,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  imageActions: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+  },
+  previewBox: {
+    width: 96,
+    height: 96,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  uploadBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  removeImgBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  removeImgText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+  },
+  helpText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    marginTop: 4,
+  },
   imgOption: {
     alignItems: "center",
     gap: 6,
@@ -446,5 +714,43 @@ const styles = StyleSheet.create({
   imgOptionLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 11,
+  },
+  pricePreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  previewLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+  },
+  pricePreviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  previewFinal: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 22,
+  },
+  previewOld: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    textDecorationLine: "line-through",
+  },
+  savePill: {
+    backgroundColor: "#16a34a",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  savePillText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#ffffff",
   },
 });

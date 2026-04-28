@@ -9,7 +9,11 @@ import React, {
   useState,
 } from "react";
 
-import { DEFAULT_MEDICINES, Medicine } from "@/constants/medicines";
+import {
+  DEFAULT_MEDICINES,
+  Medicine,
+  resolveImage,
+} from "@/constants/medicines";
 
 export type Role = "customer" | "shop" | null;
 
@@ -28,7 +32,10 @@ export type OrderItem = {
   medicineId: string;
   name: string;
   imageKey: string;
+  customImageUri: string | null;
   price: number;
+  discountPercent: number;
+  unitFinalPrice: number;
   quantity: number;
 };
 
@@ -112,6 +119,15 @@ function genId(prefix: string) {
   );
 }
 
+function attachImages(list: Omit<Medicine, "image">[]): Medicine[] {
+  return list.map((m) => ({
+    ...m,
+    discountPercent: m.discountPercent ?? 0,
+    customImageUri: m.customImageUri ?? null,
+    image: resolveImage(m.imageKey, m.customImageUri ?? null),
+  }));
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<Role>(null);
   const [shop, setShop] = useState<ShopProfile>(DEFAULT_SHOP);
@@ -131,15 +147,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (r) setRoleState(JSON.parse(r));
         if (s) setShop({ ...DEFAULT_SHOP, ...JSON.parse(s) });
         if (m) {
-          const parsed: Medicine[] = JSON.parse(m);
-          const withImages = parsed.map((med) => ({
-            ...med,
-            image:
-              med.imageKey && med.imageKey.startsWith("http")
-                ? { uri: med.imageKey }
-                : require("../assets/images/med_paracetamol.png"),
-          }));
-          setMedicines(withImages);
+          const parsed: Omit<Medicine, "image">[] = JSON.parse(m);
+          setMedicines(attachImages(parsed));
         }
         if (o) setOrders(JSON.parse(o));
       } catch {
@@ -151,10 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const persistMedicines = useCallback(async (list: Medicine[]) => {
-    const serializable = list.map((m) => ({
-      ...m,
-      image: undefined as unknown,
-    }));
+    const serializable = list.map(({ image, ...rest }) => rest);
     await AsyncStorage.setItem(
       STORAGE_KEYS.medicines,
       JSON.stringify(serializable),
@@ -184,10 +190,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addMedicine = useCallback(
     async (m: Omit<Medicine, "id" | "image">) => {
       setMedicines((prev) => {
-        const { MEDICINE_IMAGES } = require("@/constants/medicines");
-        const img =
-          MEDICINE_IMAGES[m.imageKey] ?? MEDICINE_IMAGES.paracetamol;
-        const next = [...prev, { ...m, id: genId("med"), image: img }];
+        const newMed: Medicine = {
+          ...m,
+          id: genId("med"),
+          image: resolveImage(m.imageKey, m.customImageUri ?? null),
+        };
+        const next = [...prev, newMed];
         persistMedicines(next).catch(() => {});
         return next;
       });
@@ -198,14 +206,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateMedicine = useCallback(
     async (id: string, patch: Partial<Medicine>) => {
       setMedicines((prev) => {
-        const { MEDICINE_IMAGES } = require("@/constants/medicines");
         const next = prev.map((m) => {
           if (m.id !== id) return m;
           const merged = { ...m, ...patch };
-          if (patch.imageKey) {
-            merged.image =
-              MEDICINE_IMAGES[patch.imageKey] ?? MEDICINE_IMAGES.paracetamol;
-          }
+          merged.image = resolveImage(
+            merged.imageKey,
+            merged.customImageUri ?? null,
+          );
           return merged;
         });
         persistMedicines(next).catch(() => {});

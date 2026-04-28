@@ -4,7 +4,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { Medicine } from "@/constants/medicines";
+import { Medicine, finalPrice } from "@/constants/medicines";
 
 type Props = {
   medicine: Medicine;
@@ -15,6 +15,8 @@ type Props = {
 export function MedicineCard({ medicine, onBuy, onPress }: Props) {
   const colors = useColors();
   const outOfStock = medicine.stock <= 0;
+  const hasDiscount = (medicine.discountPercent ?? 0) > 0;
+  const final = finalPrice(medicine.price, medicine.discountPercent);
 
   return (
     <Pressable
@@ -37,6 +39,13 @@ export function MedicineCard({ medicine, onBuy, onPress }: Props) {
           contentFit="cover"
           transition={200}
         />
+        {hasDiscount ? (
+          <View style={[styles.discountBadge, { backgroundColor: "#ef4444" }]}>
+            <Text style={styles.discountText}>
+              {medicine.discountPercent}% OFF
+            </Text>
+          </View>
+        ) : null}
         {medicine.otc ? (
           <View
             style={[styles.tag, { backgroundColor: colors.accent }]}
@@ -62,9 +71,18 @@ export function MedicineCard({ medicine, onBuy, onPress }: Props) {
           {medicine.description}
         </Text>
         <View style={styles.footer}>
-          <Text style={[styles.price, { color: colors.foreground }]}>
-            ₹{medicine.price}
-          </Text>
+          <View style={styles.priceCol}>
+            <Text style={[styles.price, { color: colors.foreground }]}>
+              ₹{final}
+            </Text>
+            {hasDiscount ? (
+              <Text
+                style={[styles.priceOld, { color: colors.mutedForeground }]}
+              >
+                ₹{medicine.price}
+              </Text>
+            ) : null}
+          </View>
           <Pressable
             onPress={outOfStock ? undefined : onBuy}
             disabled={outOfStock}
@@ -140,6 +158,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.5,
   },
+  discountBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  discountText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#ffffff",
+    letterSpacing: 0.4,
+  },
   info: {
     gap: 2,
   },
@@ -157,9 +189,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  priceCol: {
+    flexDirection: "column",
+  },
   price: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
+  },
+  priceOld: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    textDecorationLine: "line-through",
   },
   buyBtn: {
     flexDirection: "row",

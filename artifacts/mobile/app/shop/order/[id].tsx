@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { MEDICINE_IMAGES } from "@/constants/medicines";
+import { resolveImage } from "@/constants/medicines";
 
 export default function ShopOrderDetail() {
   const colors = useColors();
@@ -84,10 +84,10 @@ export default function ShopOrderDetail() {
             style={[styles.imageWrap, { backgroundColor: colors.secondary }]}
           >
             <Image
-              source={
-                MEDICINE_IMAGES[order.item.imageKey] ??
-                MEDICINE_IMAGES.paracetamol
-              }
+              source={resolveImage(
+                order.item.imageKey,
+                order.item.customImageUri,
+              )}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
             />
@@ -97,7 +97,10 @@ export default function ShopOrderDetail() {
               {order.item.name}
             </Text>
             <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-              Qty {order.item.quantity} · ₹{order.item.price} each
+              Qty {order.item.quantity} · ₹{order.item.unitFinalPrice} each
+              {order.item.discountPercent
+                ? ` (${order.item.discountPercent}% off)`
+                : ""}
             </Text>
             <Text style={[styles.total, { color: colors.foreground }]}>
               Total ₹{order.total}

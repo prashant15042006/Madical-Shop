@@ -5,7 +5,6 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -18,6 +17,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { finalPrice } from "@/constants/medicines";
 
 export default function BuyScreen() {
   const colors = useColors();
@@ -35,7 +35,13 @@ export default function BuyScreen() {
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
 
-  const total = medicine ? medicine.price * qty : 0;
+  const unitFinal = medicine
+    ? finalPrice(medicine.price, medicine.discountPercent)
+    : 0;
+  const total = +(unitFinal * qty).toFixed(2);
+  const originalTotal = medicine ? medicine.price * qty : 0;
+  const savings = +(originalTotal - total).toFixed(2);
+  const hasDiscount = medicine ? (medicine.discountPercent ?? 0) > 0 : false;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
 
   if (!medicine) {
@@ -107,6 +113,25 @@ export default function BuyScreen() {
           <Text style={[styles.medDesc, { color: colors.mutedForeground }]}>
             {medicine.description}
           </Text>
+          <View style={styles.priceLine}>
+            <Text style={[styles.unitPrice, { color: colors.foreground }]}>
+              ₹{unitFinal}
+            </Text>
+            {hasDiscount ? (
+              <>
+                <Text
+                  style={[styles.unitOld, { color: colors.mutedForeground }]}
+                >
+                  ₹{medicine.price}
+                </Text>
+                <View style={styles.offTag}>
+                  <Text style={styles.offTagText}>
+                    {medicine.discountPercent}% OFF
+                  </Text>
+                </View>
+              </>
+            ) : null}
+          </View>
           <View style={styles.metaRow}>
             <View
               style={[styles.tag, { backgroundColor: colors.accent }]}
@@ -143,11 +168,36 @@ export default function BuyScreen() {
             <Text style={[styles.priceLabel, { color: colors.mutedForeground }]}>
               Total
             </Text>
-            <Text style={[styles.priceValue, { color: colors.foreground }]}>
-              ₹{total}
-            </Text>
+            <View style={styles.totalLine}>
+              <Text style={[styles.priceValue, { color: colors.foreground }]}>
+                ₹{total}
+              </Text>
+              {hasDiscount ? (
+                <Text
+                  style={[
+                    styles.totalOld,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  ₹{originalTotal}
+                </Text>
+              ) : null}
+            </View>
           </View>
         </View>
+        {hasDiscount && savings > 0 ? (
+          <View
+            style={[
+              styles.savingsBanner,
+              { backgroundColor: colors.accent, borderColor: colors.primary },
+            ]}
+          >
+            <Feather name="tag" size={16} color={colors.primary} />
+            <Text style={[styles.savingsText, { color: colors.foreground }]}>
+              ₹{savings} ki bachat ho rahi hai
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -224,6 +274,34 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 13,
   },
+  priceLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+    flexWrap: "wrap",
+  },
+  unitPrice: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+  },
+  unitOld: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    textDecorationLine: "line-through",
+  },
+  offTag: {
+    backgroundColor: "#fee2e2",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  offTagText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#dc2626",
+    letterSpacing: 0.4,
+  },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -265,9 +343,31 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 12,
   },
+  totalLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
   priceValue: {
     fontFamily: "Inter_700Bold",
     fontSize: 24,
     letterSpacing: -0.3,
+  },
+  totalOld: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    textDecorationLine: "line-through",
+  },
+  savingsBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  savingsText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
   },
 });

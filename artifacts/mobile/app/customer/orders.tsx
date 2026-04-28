@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Empty } from "@/components/Empty";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { MEDICINE_IMAGES } from "@/constants/medicines";
+import { resolveImage } from "@/constants/medicines";
 
 export default function OrdersScreen() {
   const colors = useColors();
@@ -63,10 +63,10 @@ export default function OrdersScreen() {
               style={[styles.imageWrap, { backgroundColor: colors.secondary }]}
             >
               <Image
-                source={
-                  MEDICINE_IMAGES[item.item.imageKey] ??
-                  MEDICINE_IMAGES.paracetamol
-                }
+                source={resolveImage(
+                  item.item.imageKey,
+                  item.item.customImageUri,
+                )}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
               />

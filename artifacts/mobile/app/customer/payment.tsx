@@ -1,10 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
+  Alert,
+  Linking,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,8 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-
-type Method = "upi" | "cod";
+import { finalPrice } from "@/constants/medicines";
 
 export default function PaymentScreen() {
   const colors = useColors();
@@ -36,10 +36,10 @@ export default function PaymentScreen() {
     [medicines, id],
   );
   const quantity = Math.max(1, Number(qty) || 1);
-  const total = medicine ? medicine.price * quantity : 0;
-
-  const [method, setMethod] = useState<Method>("upi");
-  const [showQr, setShowQr] = useState(false);
+  const unitFinal = medicine
+    ? finalPrice(medicine.price, medicine.discountPercent)
+    : 0;
+  const total = +(unitFinal * quantity).toFixed(2);
 
   const upiString = `upi://pay?pa=${encodeURIComponent(
     shop.upiId || "shop@medigo",
@@ -63,7 +63,7 @@ export default function PaymentScreen() {
     );
   }
 
-  const confirmOrder = () => {
+  const confirmOrder = (method: "upi" | "cod") => {
     const order = placeOrder({
       customerName: String(name),
       customerMobile: String(mobile),
@@ -72,7 +72,10 @@ export default function PaymentScreen() {
         medicineId: medicine.id,
         name: medicine.name,
         imageKey: medicine.imageKey,
+        customImageUri: medicine.customImageUri ?? null,
         price: medicine.price,
+        discountPercent: medicine.discountPercent ?? 0,
+        unitFinalPrice: unitFinal,
         quantity,
       },
       total,
@@ -82,6 +85,25 @@ export default function PaymentScreen() {
       pathname: "/customer/order/[id]",
       params: { id: order.id, just_placed: "1" },
     });
+  };
+
+  const openUpiApp = async () => {
+    try {
+      const supported = await Linking.canOpenURL(upiString);
+      if (supported) {
+        await Linking.openURL(upiString);
+      } else {
+        Alert.alert(
+          "UPI app nahi mila",
+          "Apne phone me PhonePe/Google Pay/Paytm install karein, ya barcode scan karein.",
+        );
+      }
+    } catch {
+      Alert.alert(
+        "Open nahi hua",
+        "Barcode scan karke pay karein.",
+      );
+    }
   };
 
   return (
@@ -112,7 +134,7 @@ export default function PaymentScreen() {
             {medicine.name}
           </Text>
           <Text style={[styles.medDesc, { color: colors.mutedForeground }]}>
-            Qty {quantity} · ₹{medicine.price} each
+            Qty {quantity} · ₹{unitFinal} each
           </Text>
         </View>
         <Text style={[styles.totalText, { color: colors.foreground }]}>
@@ -142,167 +164,181 @@ export default function PaymentScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-          Payment Method
+      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+        Payment Karein
+      </Text>
+
+      <View
+        style={[
+          styles.methodCard,
+          { backgroundColor: colors.card, borderColor: colors.primary },
+        ]}
+      >
+        <View style={styles.methodHeader}>
+          <View
+            style={[
+              styles.methodIcon,
+              { backgroundColor: colors.primary },
+            ]}
+          >
+            <Feather
+              name="smartphone"
+              size={20}
+              color={colors.primaryForeground}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.methodTitle, { color: colors.foreground }]}>
+              UPI Payment
+            </Text>
+            <Text
+              style={[styles.methodSub, { color: colors.mutedForeground }]}
+            >
+              Dukandar ka barcode scan karein
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.qrWrap}>
+          <View
+            style={[
+              styles.qrFrame,
+              { backgroundColor: "#fff", borderColor: colors.border },
+            ]}
+          >
+            <Image
+              source={
+                shop.qrImageUri
+                  ? { uri: shop.qrImageUri }
+                  : { uri: generatedQrUrl }
+              }
+              style={{ width: 220, height: 220 }}
+              contentFit="contain"
+            />
+          </View>
+          <View
+            style={[
+              styles.amountChip,
+              { backgroundColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.amountChipText, { color: colors.primaryForeground }]}>
+              Pay ₹{total}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={[styles.payToText, { color: colors.foreground }]}>
+          Pay to: {shop.shopName || "MediGo Shop"}
         </Text>
-        <View style={{ gap: 12 }}>
-          <MethodRow
-            active={method === "upi"}
-            icon="smartphone"
-            title="UPI / Barcode"
-            subtitle="QR scan karke turant payment"
-            onPress={() => {
-              setMethod("upi");
-              setShowQr(false);
-            }}
-          />
-          <MethodRow
-            active={method === "cod"}
-            icon="dollar-sign"
-            title="Cash on Delivery"
-            subtitle="Dukandar ko delivery par cash dijiye"
-            onPress={() => {
-              setMethod("cod");
-              setShowQr(false);
-            }}
+
+        <View style={styles.steps}>
+          <Step n={1} text="PhonePe / GPay / Paytm khole" colors={colors} />
+          <Step n={2} text="Yeh barcode scan karein" colors={colors} />
+          <Step
+            n={3}
+            text={`Exact ₹${total} pay karein`}
+            colors={colors}
           />
         </View>
+
+        {Platform.OS !== "web" ? (
+          <PrimaryButton
+            title="UPI App Khole"
+            icon="external-link"
+            variant="outline"
+            onPress={openUpiApp}
+          />
+        ) : null}
+
+        <PrimaryButton
+          title="Pay Ho Gaya · Order Confirm"
+          icon="check-circle"
+          onPress={() => confirmOrder("upi")}
+        />
       </View>
 
-      {method === "upi" ? (
+      <View
+        style={[
+          styles.methodCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.methodHeader}>
+          <View
+            style={[
+              styles.methodIcon,
+              { backgroundColor: colors.accent },
+            ]}
+          >
+            <Feather name="dollar-sign" size={20} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.methodTitle, { color: colors.foreground }]}>
+              Cash on Delivery
+            </Text>
+            <Text
+              style={[styles.methodSub, { color: colors.mutedForeground }]}
+            >
+              Delivery par dukandar ko cash dijiye
+            </Text>
+          </View>
+        </View>
+
         <View
           style={[
-            styles.qrCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
+            styles.codAmount,
+            { backgroundColor: colors.secondary },
           ]}
         >
-          {!showQr ? (
-            <View style={{ alignItems: "center", gap: 10 }}>
-              <Feather name="maximize" size={28} color={colors.primary} />
-              <Text
-                style={[styles.qrTitle, { color: colors.foreground }]}
-              >
-                Barcode Generate Karein
-              </Text>
-              <Text
-                style={[styles.qrSub, { color: colors.mutedForeground }]}
-              >
-                ₹{total} ka QR banega — scan karke pay karein
-              </Text>
-              <PrimaryButton
-                title="Generate QR"
-                icon="zap"
-                onPress={() => setShowQr(true)}
-              />
-            </View>
-          ) : (
-            <View style={{ alignItems: "center", gap: 10 }}>
-              <View
-                style={[
-                  styles.qrFrame,
-                  { backgroundColor: "#fff", borderColor: colors.border },
-                ]}
-              >
-                <Image
-                  source={
-                    shop.qrImageUri
-                      ? { uri: shop.qrImageUri }
-                      : { uri: generatedQrUrl }
-                  }
-                  style={{ width: 240, height: 240 }}
-                  contentFit="contain"
-                />
-              </View>
-              <Text
-                style={[styles.qrTitle, { color: colors.foreground }]}
-              >
-                ₹{total} pay to {shop.shopName || "MediGo Shop"}
-              </Text>
-              <Text
-                style={[styles.qrSub, { color: colors.mutedForeground }]}
-              >
-                Apne UPI app se yeh barcode scan karein
-              </Text>
-            </View>
-          )}
+          <Text
+            style={[styles.codLabel, { color: colors.mutedForeground }]}
+          >
+            Delivery par dena hai
+          </Text>
+          <Text style={[styles.codValue, { color: colors.foreground }]}>
+            ₹{total}
+          </Text>
         </View>
-      ) : null}
 
-      <PrimaryButton
-        title={
-          method === "cod" ? "OK · Order Confirm" : "Maine Pay Kar Diya"
-        }
-        icon="check-circle"
-        onPress={confirmOrder}
-      />
+        <PrimaryButton
+          title="COD se Order Confirm"
+          icon="check"
+          variant="outline"
+          onPress={() => confirmOrder("cod")}
+        />
+      </View>
     </ScrollView>
   );
 }
 
-function MethodRow({
-  active,
-  icon,
-  title,
-  subtitle,
-  onPress,
+function Step({
+  n,
+  text,
+  colors,
 }: {
-  active: boolean;
-  icon: keyof typeof Feather.glyphMap;
-  title: string;
-  subtitle: string;
-  onPress: () => void;
+  n: number;
+  text: string;
+  colors: ReturnType<typeof useColors>;
 }) {
-  const colors = useColors();
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.methodRow,
-        {
-          backgroundColor: active ? colors.accent : colors.card,
-          borderColor: active ? colors.primary : colors.border,
-          transform: [{ scale: pressed ? 0.99 : 1 }],
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.methodIcon,
-          { backgroundColor: active ? colors.primary : colors.secondary },
-        ]}
-      >
-        <Feather
-          name={icon}
-          size={20}
-          color={active ? colors.primaryForeground : colors.primary}
-        />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text
-          style={[styles.methodTitle, { color: colors.foreground }]}
-        >
-          {title}
-        </Text>
-        <Text
-          style={[styles.methodSub, { color: colors.mutedForeground }]}
-        >
-          {subtitle}
+    <View style={styles.stepRow}>
+      <View style={[styles.stepNum, { backgroundColor: colors.accent }]}>
+        <Text style={[styles.stepNumText, { color: colors.accentForeground }]}>
+          {n}
         </Text>
       </View>
-      <Feather
-        name={active ? "check-circle" : "circle"}
-        size={22}
-        color={active ? colors.primary : colors.mutedForeground}
-      />
-    </Pressable>
+      <Text style={[styles.stepText, { color: colors.foreground }]}>
+        {text}
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: {
     padding: 16,
-    gap: 18,
+    gap: 16,
   },
   empty: {
     flex: 1,
@@ -356,13 +392,16 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 13,
   },
-  methodRow: {
+  methodCard: {
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    gap: 14,
+  },
+  methodHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1.5,
   },
   methodIcon: {
     width: 44,
@@ -372,17 +411,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   methodTitle: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
   },
   methodSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
   },
-  qrCard: {
-    padding: 20,
-    borderRadius: 22,
-    borderWidth: 1,
+  qrWrap: {
     alignItems: "center",
     gap: 10,
   },
@@ -391,14 +427,58 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  qrTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    textAlign: "center",
+  amountChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
-  qrSub: {
-    fontFamily: "Inter_400Regular",
+  amountChipText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  payToText: {
+    fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     textAlign: "center",
+  },
+  steps: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  stepNum: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepNumText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+  },
+  stepText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    flex: 1,
+  },
+  codAmount: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 14,
+  },
+  codLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+  },
+  codValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 22,
   },
 });
