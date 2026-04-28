@@ -206,7 +206,7 @@ function EditSheet({
 }: {
   medicine: Medicine | null;
   onClose: () => void;
-  onSave: (data: Omit<Medicine, "id" | "image">) => Promise<void>;
+  onSave: (data: Omit<Medicine, "id" | "image" | "shopId">) => Promise<void>;
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();

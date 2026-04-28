@@ -3,20 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MediGo API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: shop
+  - name: medicines
+  - name: orders
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +25,204 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /shop:
+    get:
+      operationId: getShop
+      tags: [shop]
+      summary: Get shop profile
+      responses:
+        "200":
+          description: Shop profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shop"
+    patch:
+      operationId: updateShop
+      tags: [shop]
+      summary: Update shop profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateShopBody"
+      responses:
+        "200":
+          description: Updated shop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shop"
+
+  /medicines:
+    get:
+      operationId: listMedicines
+      tags: [medicines]
+      summary: List all medicines
+      responses:
+        "200":
+          description: Medicines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Medicine"
+    post:
+      operationId: createMedicine
+      tags: [medicines]
+      summary: Add a medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMedicineBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+  /medicines/{id}:
+    patch:
+      operationId: updateMedicine
+      tags: [medicines]
+      summary: Update a medicine
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMedicineBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Medicine"
+    delete:
+      operationId: deleteMedicine
+      tags: [medicines]
+      summary: Delete a medicine
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List orders (optionally filter by customer mobile)
+      parameters:
+        - name: customerMobile
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+  /orders/{id}/deliver:
+    patch:
+      operationId: markOrderDelivered
+      tags: [orders]
+      summary: Mark order delivered
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+  /orders/{id}/rate:
+    patch:
+      operationId: rateOrder
+      tags: [orders]
+      summary: Rate a delivered order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RateOrderBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +230,189 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Shop:
+      type: object
+      properties:
+        id: { type: string }
+        shopName: { type: string }
+        ownerName: { type: string }
+        mobile: { type: string }
+        address: { type: string }
+        upiId: { type: string }
+        qrImageUri: { type: ["string", "null"] }
+        rating: { type: number }
+        ratingCount: { type: integer }
+      required:
+        - id
+        - shopName
+        - ownerName
+        - mobile
+        - address
+        - upiId
+        - qrImageUri
+        - rating
+        - ratingCount
+
+    UpdateShopBody:
+      type: object
+      properties:
+        shopName: { type: string }
+        ownerName: { type: string }
+        mobile: { type: string }
+        address: { type: string }
+        upiId: { type: string }
+        qrImageUri: { type: ["string", "null"] }
+
+    Medicine:
+      type: object
+      properties:
+        id: { type: string }
+        shopId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        price: { type: number }
+        discountPercent: { type: number }
+        stock: { type: integer }
+        otc: { type: boolean }
+        imageKey: { type: string }
+        customImageUri: { type: ["string", "null"] }
+      required:
+        - id
+        - shopId
+        - name
+        - description
+        - price
+        - discountPercent
+        - stock
+        - otc
+        - imageKey
+        - customImageUri
+
+    CreateMedicineBody:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number }
+        discountPercent: { type: number }
+        stock: { type: integer }
+        otc: { type: boolean }
+        imageKey: { type: string }
+        customImageUri: { type: ["string", "null"] }
+      required: [name, description, price, stock, otc, imageKey]
+
+    UpdateMedicineBody:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        price: { type: number }
+        discountPercent: { type: number }
+        stock: { type: integer }
+        otc: { type: boolean }
+        imageKey: { type: string }
+        customImageUri: { type: ["string", "null"] }
+
+    OrderItemInput:
+      type: object
+      properties:
+        medicineId: { type: string }
+        name: { type: string }
+        imageKey: { type: string }
+        customImageUri: { type: ["string", "null"] }
+        price: { type: number }
+        discountPercent: { type: number }
+        unitFinalPrice: { type: number }
+        quantity: { type: integer }
+      required:
+        - medicineId
+        - name
+        - imageKey
+        - customImageUri
+        - price
+        - discountPercent
+        - unitFinalPrice
+        - quantity
+
+    OrderItem:
+      type: object
+      properties:
+        medicineId: { type: string }
+        name: { type: string }
+        imageKey: { type: string }
+        customImageUri: { type: ["string", "null"] }
+        price: { type: number }
+        discountPercent: { type: number }
+        unitFinalPrice: { type: number }
+        quantity: { type: integer }
+      required:
+        - medicineId
+        - name
+        - imageKey
+        - customImageUri
+        - price
+        - discountPercent
+        - unitFinalPrice
+        - quantity
+
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        shopId: { type: string }
+        customerName: { type: string }
+        customerMobile: { type: string }
+        customerAddress: { type: string }
+        item:
+          $ref: "#/components/schemas/OrderItem"
+        total: { type: number }
+        paymentMethod: { type: string }
+        status: { type: string }
+        customerRating: { type: ["integer", "null"] }
+        shopName: { type: string }
+        shopMobile: { type: string }
+        shopAddress: { type: string }
+        createdAt: { type: integer }
+        deliveredAt: { type: ["integer", "null"] }
+      required:
+        - id
+        - shopId
+        - customerName
+        - customerMobile
+        - customerAddress
+        - item
+        - total
+        - paymentMethod
+        - status
+        - customerRating
+        - shopName
+        - shopMobile
+        - shopAddress
+        - createdAt
+        - deliveredAt
+
+    CreateOrderBody:
+      type: object
+      properties:
+        customerName: { type: string }
+        customerMobile: { type: string }
+        customerAddress: { type: string }
+        item:
+          $ref: "#/components/schemas/OrderItemInput"
+        total: { type: number }
+        paymentMethod: { type: string }
+      required:
+        - customerName
+        - customerMobile
+        - customerAddress
+        - item
+        - total
+        - paymentMethod
+
+    RateOrderBody:
+      type: object
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+      required: [rating]

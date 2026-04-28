@@ -63,28 +63,36 @@ export default function PaymentScreen() {
     );
   }
 
-  const confirmOrder = (method: "upi" | "cod") => {
-    const order = placeOrder({
-      customerName: String(name),
-      customerMobile: String(mobile),
-      customerAddress: String(address),
-      item: {
-        medicineId: medicine.id,
-        name: medicine.name,
-        imageKey: medicine.imageKey,
-        customImageUri: medicine.customImageUri ?? null,
-        price: medicine.price,
-        discountPercent: medicine.discountPercent ?? 0,
-        unitFinalPrice: unitFinal,
-        quantity,
-      },
-      total,
-      paymentMethod: method,
-    });
-    router.replace({
-      pathname: "/customer/order/[id]",
-      params: { id: order.id, just_placed: "1" },
-    });
+  const [placing, setPlacing] = React.useState(false);
+  const confirmOrder = async (method: "upi" | "cod") => {
+    if (placing) return;
+    setPlacing(true);
+    try {
+      const order = await placeOrder({
+        customerName: String(name),
+        customerMobile: String(mobile),
+        customerAddress: String(address),
+        item: {
+          medicineId: medicine.id,
+          name: medicine.name,
+          imageKey: medicine.imageKey,
+          customImageUri: medicine.customImageUri ?? null,
+          price: medicine.price,
+          discountPercent: medicine.discountPercent ?? 0,
+          unitFinalPrice: unitFinal,
+          quantity,
+        },
+        total,
+        paymentMethod: method,
+      });
+      router.replace({
+        pathname: "/customer/order/[id]",
+        params: { id: order.id, just_placed: "1" },
+      });
+    } catch (err) {
+      console.warn("placeOrder failed", err);
+      setPlacing(false);
+    }
   };
 
   const openUpiApp = async () => {

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useQueryClient } from "@tanstack/react-query";
 import React, {
   createContext,
   ReactNode,
@@ -10,94 +11,72 @@ import React, {
 } from "react";
 
 import {
-  DEFAULT_MEDICINES,
-  Medicine,
-  resolveImage,
-} from "@/constants/medicines";
+  type CreateMedicineBody,
+  type Order,
+  type OrderItemInput,
+  type Shop,
+  type UpdateMedicineBody,
+  type UpdateShopBody,
+  getGetShopQueryKey,
+  getListMedicinesQueryKey,
+  getListOrdersQueryKey,
+  useCreateMedicine,
+  useCreateOrder,
+  useDeleteMedicine,
+  useGetShop,
+  useListMedicines,
+  useListOrders,
+  useMarkOrderDelivered,
+  useRateOrder,
+  useUpdateMedicine,
+  useUpdateShop,
+} from "@workspace/api-client-react";
+
+import { Medicine, withImage } from "@/constants/medicines";
 
 export type Role = "customer" | "shop" | null;
-
-export type ShopProfile = {
-  shopName: string;
-  ownerName: string;
-  mobile: string;
-  address: string;
-  upiId: string;
-  qrImageUri: string | null;
-  rating: number;
-  ratingCount: number;
-};
-
-export type OrderItem = {
-  medicineId: string;
-  name: string;
-  imageKey: string;
-  customImageUri: string | null;
-  price: number;
-  discountPercent: number;
-  unitFinalPrice: number;
-  quantity: number;
-};
-
-export type Order = {
-  id: string;
-  customerName: string;
-  customerMobile: string;
-  customerAddress: string;
-  item: OrderItem;
-  total: number;
-  paymentMethod: "upi" | "cod";
-  status: "placed" | "delivered";
-  createdAt: number;
-  deliveredAt: number | null;
-  customerRating: number | null;
-  shopName: string;
-  shopMobile: string;
-  shopAddress: string;
-};
 
 type AppContextValue = {
   role: Role;
   setRole: (role: Role) => void;
   resetRole: () => void;
 
-  shop: ShopProfile;
-  saveShopProfile: (profile: Partial<ShopProfile>) => Promise<void>;
+  shop: Shop;
+  saveShopProfile: (profile: UpdateShopBody) => Promise<void>;
   shopReady: boolean;
 
   medicines: Medicine[];
-  addMedicine: (m: Omit<Medicine, "id" | "image">) => Promise<void>;
-  updateMedicine: (id: string, m: Partial<Medicine>) => Promise<void>;
+  medicinesLoading: boolean;
+  addMedicine: (m: CreateMedicineBody) => Promise<void>;
+  updateMedicine: (id: string, m: UpdateMedicineBody) => Promise<void>;
   removeMedicine: (id: string) => Promise<void>;
 
   orders: Order[];
-  placeOrder: (
-    o: Omit<
-      Order,
-      | "id"
-      | "createdAt"
-      | "status"
-      | "deliveredAt"
-      | "customerRating"
-      | "shopName"
-      | "shopMobile"
-      | "shopAddress"
-    >,
-  ) => Order;
+  ordersLoading: boolean;
+  customerMobile: string | null;
+  placeOrder: (input: PlaceOrderInput) => Promise<Order>;
   markDelivered: (orderId: string) => Promise<void>;
   rateOrder: (orderId: string, rating: number) => Promise<void>;
 
   loaded: boolean;
 };
 
-const STORAGE_KEYS = {
-  role: "@medigo/role",
-  shop: "@medigo/shop",
-  medicines: "@medigo/medicines",
-  orders: "@medigo/orders",
+export type PlaceOrderInput = {
+  customerName: string;
+  customerMobile: string;
+  customerAddress: string;
+  item: OrderItemInput;
+  total: number;
+  paymentMethod: "upi" | "cod";
 };
 
-const DEFAULT_SHOP: ShopProfile = {
+const STORAGE_KEYS = {
+  role: "@medigo/role",
+  customerMobile: "@medigo/customerMobile",
+};
+
+const DEFAULT_SHOP: Shop = {
+  id: "main",
   shopName: "",
   ownerName: "",
   mobile: "",
@@ -110,61 +89,28 @@ const DEFAULT_SHOP: ShopProfile = {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-function genId(prefix: string) {
-  return (
-    prefix +
-    "_" +
-    Date.now().toString(36) +
-    Math.random().toString(36).slice(2, 8)
-  );
-}
-
-function attachImages(list: Omit<Medicine, "image">[]): Medicine[] {
-  return list.map((m) => ({
-    ...m,
-    discountPercent: m.discountPercent ?? 0,
-    customImageUri: m.customImageUri ?? null,
-    image: resolveImage(m.imageKey, m.customImageUri ?? null),
-  }));
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<Role>(null);
-  const [shop, setShop] = useState<ShopProfile>(DEFAULT_SHOP);
-  const [medicines, setMedicines] = useState<Medicine[]>(DEFAULT_MEDICINES);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [customerMobile, setCustomerMobile] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     (async () => {
       try {
-        const [r, s, m, o] = await Promise.all([
+        const [r, m] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.role),
-          AsyncStorage.getItem(STORAGE_KEYS.shop),
-          AsyncStorage.getItem(STORAGE_KEYS.medicines),
-          AsyncStorage.getItem(STORAGE_KEYS.orders),
+          AsyncStorage.getItem(STORAGE_KEYS.customerMobile),
         ]);
         if (r) setRoleState(JSON.parse(r));
-        if (s) setShop({ ...DEFAULT_SHOP, ...JSON.parse(s) });
-        if (m) {
-          const parsed: Omit<Medicine, "image">[] = JSON.parse(m);
-          setMedicines(attachImages(parsed));
-        }
-        if (o) setOrders(JSON.parse(o));
+        if (m) setCustomerMobile(JSON.parse(m));
       } catch {
         // ignore
       } finally {
-        setLoaded(true);
+        setHydrated(true);
       }
     })();
-  }, []);
-
-  const persistMedicines = useCallback(async (list: Medicine[]) => {
-    const serializable = list.map(({ image, ...rest }) => rest);
-    await AsyncStorage.setItem(
-      STORAGE_KEYS.medicines,
-      JSON.stringify(serializable),
-    );
   }, []);
 
   const setRole = useCallback((r: Role) => {
@@ -177,152 +123,128 @@ export function AppProvider({ children }: { children: ReactNode }) {
     AsyncStorage.removeItem(STORAGE_KEYS.role).catch(() => {});
   }, []);
 
-  const saveShopProfile = useCallback(async (profile: Partial<ShopProfile>) => {
-    setShop((prev) => {
-      const next = { ...prev, ...profile };
-      AsyncStorage.setItem(STORAGE_KEYS.shop, JSON.stringify(next)).catch(
-        () => {},
-      );
-      return next;
-    });
-  }, []);
-
-  const addMedicine = useCallback(
-    async (m: Omit<Medicine, "id" | "image">) => {
-      setMedicines((prev) => {
-        const newMed: Medicine = {
-          ...m,
-          id: genId("med"),
-          image: resolveImage(m.imageKey, m.customImageUri ?? null),
-        };
-        const next = [...prev, newMed];
-        persistMedicines(next).catch(() => {});
-        return next;
-      });
+  // Queries
+  const shopQuery = useGetShop();
+  const medicinesQuery = useListMedicines();
+  const ordersParams =
+    role === "customer" && customerMobile ? { customerMobile } : undefined;
+  const ordersQuery = useListOrders(ordersParams, {
+    query: {
+      queryKey: getListOrdersQueryKey(ordersParams),
+      enabled: hydrated && (role === "shop" || !!customerMobile),
     },
-    [persistMedicines],
+  });
+
+  // Mutations
+  const updateShopMut = useUpdateShop();
+  const createMedicineMut = useCreateMedicine();
+  const updateMedicineMut = useUpdateMedicine();
+  const deleteMedicineMut = useDeleteMedicine();
+  const createOrderMut = useCreateOrder();
+  const markDeliveredMut = useMarkOrderDelivered();
+  const rateOrderMut = useRateOrder();
+
+  const invalidateShop = useCallback(
+    () =>
+      queryClient.invalidateQueries({ queryKey: getGetShopQueryKey() }),
+    [queryClient],
+  );
+  const invalidateMedicines = useCallback(
+    () =>
+      queryClient.invalidateQueries({
+        queryKey: getListMedicinesQueryKey(),
+      }),
+    [queryClient],
+  );
+  const invalidateOrders = useCallback(
+    () =>
+      queryClient.invalidateQueries({
+        queryKey: [getListOrdersQueryKey()[0]],
+      }),
+    [queryClient],
   );
 
-  const updateMedicine = useCallback(
-    async (id: string, patch: Partial<Medicine>) => {
-      setMedicines((prev) => {
-        const next = prev.map((m) => {
-          if (m.id !== id) return m;
-          const merged = { ...m, ...patch };
-          merged.image = resolveImage(
-            merged.imageKey,
-            merged.customImageUri ?? null,
-          );
-          return merged;
-        });
-        persistMedicines(next).catch(() => {});
-        return next;
-      });
+  const saveShopProfile = useCallback<AppContextValue["saveShopProfile"]>(
+    async (patch) => {
+      await updateShopMut.mutateAsync({ data: patch });
+      await invalidateShop();
     },
-    [persistMedicines],
+    [updateShopMut, invalidateShop],
   );
 
-  const removeMedicine = useCallback(
-    async (id: string) => {
-      setMedicines((prev) => {
-        const next = prev.filter((m) => m.id !== id);
-        persistMedicines(next).catch(() => {});
-        return next;
-      });
+  const addMedicine = useCallback<AppContextValue["addMedicine"]>(
+    async (m) => {
+      await createMedicineMut.mutateAsync({ data: m });
+      await invalidateMedicines();
     },
-    [persistMedicines],
+    [createMedicineMut, invalidateMedicines],
+  );
+
+  const updateMedicine = useCallback<AppContextValue["updateMedicine"]>(
+    async (id, patch) => {
+      await updateMedicineMut.mutateAsync({ id, data: patch });
+      await invalidateMedicines();
+    },
+    [updateMedicineMut, invalidateMedicines],
+  );
+
+  const removeMedicine = useCallback<AppContextValue["removeMedicine"]>(
+    async (id) => {
+      await deleteMedicineMut.mutateAsync({ id });
+      await invalidateMedicines();
+    },
+    [deleteMedicineMut, invalidateMedicines],
   );
 
   const placeOrder = useCallback<AppContextValue["placeOrder"]>(
-    (o) => {
-      const newOrder: Order = {
-        ...o,
-        id: genId("ord"),
-        createdAt: Date.now(),
-        status: "placed",
-        deliveredAt: null,
-        customerRating: null,
-        shopName: shop.shopName || "MediGo Shop",
-        shopMobile: shop.mobile || "Not set",
-        shopAddress: shop.address || "Not set",
-      };
-      setOrders((prev) => {
-        const next = [newOrder, ...prev];
-        AsyncStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(next)).catch(
-          () => {},
-        );
-        return next;
+    async (input) => {
+      const order = await createOrderMut.mutateAsync({
+        data: {
+          customerName: input.customerName,
+          customerMobile: input.customerMobile,
+          customerAddress: input.customerAddress,
+          item: input.item,
+          total: input.total,
+          paymentMethod: input.paymentMethod,
+        },
       });
-      // reduce stock
-      setMedicines((prev) => {
-        const next = prev.map((m) =>
-          m.id === o.item.medicineId
-            ? { ...m, stock: Math.max(0, m.stock - o.item.quantity) }
-            : m,
-        );
-        persistMedicines(next).catch(() => {});
-        return next;
-      });
-      return newOrder;
+      // remember customer mobile for "My Orders" filter
+      setCustomerMobile(input.customerMobile);
+      AsyncStorage.setItem(
+        STORAGE_KEYS.customerMobile,
+        JSON.stringify(input.customerMobile),
+      ).catch(() => {});
+      await Promise.all([invalidateOrders(), invalidateMedicines()]);
+      return order;
     },
-    [shop, persistMedicines],
+    [createOrderMut, invalidateOrders, invalidateMedicines],
   );
 
-  const markDelivered = useCallback(async (orderId: string) => {
-    setOrders((prev) => {
-      const next = prev.map((o) =>
-        o.id === orderId
-          ? { ...o, status: "delivered" as const, deliveredAt: Date.now() }
-          : o,
-      );
-      AsyncStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(next)).catch(
-        () => {},
-      );
-      return next;
-    });
-  }, []);
-
-  const rateOrder = useCallback(
-    async (orderId: string, rating: number) => {
-      let oldRating: number | null = null;
-      setOrders((prev) => {
-        const next = prev.map((o) => {
-          if (o.id === orderId) {
-            oldRating = o.customerRating;
-            return { ...o, customerRating: rating };
-          }
-          return o;
-        });
-        AsyncStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(next)).catch(
-          () => {},
-        );
-        return next;
-      });
-      // update shop average
-      setShop((prev) => {
-        let totalRating = prev.rating * prev.ratingCount;
-        let count = prev.ratingCount;
-        if (oldRating != null) {
-          totalRating = totalRating - oldRating + rating;
-        } else {
-          totalRating = totalRating + rating;
-          count = count + 1;
-        }
-        const next = {
-          ...prev,
-          rating: count > 0 ? totalRating / count : 0,
-          ratingCount: count,
-        };
-        AsyncStorage.setItem(STORAGE_KEYS.shop, JSON.stringify(next)).catch(
-          () => {},
-        );
-        return next;
-      });
+  const markDelivered = useCallback<AppContextValue["markDelivered"]>(
+    async (id) => {
+      await markDeliveredMut.mutateAsync({ id });
+      await invalidateOrders();
     },
-    [],
+    [markDeliveredMut, invalidateOrders],
   );
+
+  const rateOrder = useCallback<AppContextValue["rateOrder"]>(
+    async (id, rating) => {
+      await rateOrderMut.mutateAsync({ id, data: { rating } });
+      await Promise.all([invalidateOrders(), invalidateShop()]);
+    },
+    [rateOrderMut, invalidateOrders, invalidateShop],
+  );
+
+  const shop = shopQuery.data ?? DEFAULT_SHOP;
+  const medicines = useMemo<Medicine[]>(
+    () => (medicinesQuery.data ?? []).map(withImage),
+    [medicinesQuery.data],
+  );
+  const orders = ordersQuery.data ?? [];
 
   const shopReady = !!(shop.shopName && shop.mobile && shop.upiId);
+  const loaded = hydrated && !shopQuery.isLoading && !medicinesQuery.isLoading;
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -333,10 +255,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveShopProfile,
       shopReady,
       medicines,
+      medicinesLoading: medicinesQuery.isLoading,
       addMedicine,
       updateMedicine,
       removeMedicine,
       orders,
+      ordersLoading: ordersQuery.isLoading,
+      customerMobile,
       placeOrder,
       markDelivered,
       rateOrder,
@@ -350,10 +275,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveShopProfile,
       shopReady,
       medicines,
+      medicinesQuery.isLoading,
       addMedicine,
       updateMedicine,
       removeMedicine,
       orders,
+      ordersQuery.isLoading,
+      customerMobile,
       placeOrder,
       markDelivered,
       rateOrder,
@@ -369,3 +297,5 @@ export function useApp() {
   if (!ctx) throw new Error("useApp must be used within AppProvider");
   return ctx;
 }
+
+export type { Order, OrderItemInput };
