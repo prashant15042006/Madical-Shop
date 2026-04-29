@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CountdownBadge } from "@/components/CountdownBadge";
 import { Empty } from "@/components/Empty";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -170,6 +171,47 @@ export default function ShopDashboard() {
               />
             </Pressable>
 
+            <Pressable
+              onPress={() => router.push("/shop/analytics")}
+              style={({ pressed }) => [
+                styles.actionRow,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.95 : 1,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.actionIcon,
+                  { backgroundColor: "#dbeafe" },
+                ]}
+              >
+                <Feather name="bar-chart-2" size={20} color="#1d4ed8" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.actionTitle, { color: colors.foreground }]}
+                >
+                  Analytics & Reports
+                </Text>
+                <Text
+                  style={[
+                    styles.actionSub,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  Aaj/hafte ki sale, top medicines, low stock
+                </Text>
+              </View>
+              <Feather
+                name="chevron-right"
+                size={20}
+                color={colors.mutedForeground}
+              />
+            </Pressable>
+
             <Text
               style={[styles.sectionTitle, { color: colors.foreground }]}
             >
@@ -268,6 +310,14 @@ export default function ShopDashboard() {
                 >
                   ₹{item.total} · {item.paymentMethod === "cod" ? "COD" : "UPI"}
                 </Text>
+              </View>
+              <View style={{ marginTop: 4 }}>
+                <CountdownBadge
+                  expectedDeliveryAt={item.expectedDeliveryAt}
+                  deliveredAt={item.deliveredAt}
+                  status={item.status}
+                  size="sm"
+                />
               </View>
             </View>
             <Feather

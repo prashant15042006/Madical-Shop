@@ -375,6 +375,7 @@ components:
         shopMobile: { type: string }
         shopAddress: { type: string }
         createdAt: { type: integer }
+        expectedDeliveryAt: { type: ["integer", "null"] }
         deliveredAt: { type: ["integer", "null"] }
       required:
         - id
@@ -391,6 +392,7 @@ components:
         - shopMobile
         - shopAddress
         - createdAt
+        - expectedDeliveryAt
         - deliveredAt
 
     CreateOrderBody:

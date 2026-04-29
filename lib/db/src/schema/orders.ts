@@ -35,6 +35,9 @@ export const ordersTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    expectedDeliveryAt: timestamp("expected_delivery_at", {
+      withTimezone: true,
+    }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   },
   (t) => [

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CountdownBadge } from "@/components/CountdownBadge";
 import { Empty } from "@/components/Empty";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -131,6 +132,12 @@ export default function OrdersScreen() {
                     </Text>
                   </View>
                 ) : null}
+                <CountdownBadge
+                  expectedDeliveryAt={item.expectedDeliveryAt}
+                  deliveredAt={item.deliveredAt}
+                  status={item.status}
+                  size="sm"
+                />
               </View>
             </View>
             <Feather

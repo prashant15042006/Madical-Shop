@@ -153,6 +153,7 @@ export const ListOrdersResponseItem = zod.object({
   shopMobile: zod.string(),
   shopAddress: zod.string(),
   createdAt: zod.number(),
+  expectedDeliveryAt: zod.number().nullable(),
   deliveredAt: zod.number().nullable(),
 });
 export const ListOrdersResponse = zod.array(ListOrdersResponseItem);
@@ -209,6 +210,7 @@ export const GetOrderResponse = zod.object({
   shopMobile: zod.string(),
   shopAddress: zod.string(),
   createdAt: zod.number(),
+  expectedDeliveryAt: zod.number().nullable(),
   deliveredAt: zod.number().nullable(),
 });
 
@@ -243,6 +245,7 @@ export const MarkOrderDeliveredResponse = zod.object({
   shopMobile: zod.string(),
   shopAddress: zod.string(),
   createdAt: zod.number(),
+  expectedDeliveryAt: zod.number().nullable(),
   deliveredAt: zod.number().nullable(),
 });
 
@@ -283,5 +286,6 @@ export const RateOrderResponse = zod.object({
   shopMobile: zod.string(),
   shopAddress: zod.string(),
   createdAt: zod.number(),
+  expectedDeliveryAt: zod.number().nullable(),
   deliveredAt: zod.number().nullable(),
 });

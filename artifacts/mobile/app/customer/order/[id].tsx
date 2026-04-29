@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CountdownBadge } from "@/components/CountdownBadge";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -128,6 +129,13 @@ export default function OrderDetail() {
           value={isDelivered ? "Delivered" : "Order Placed"}
           highlight={isDelivered ? colors.primary : undefined}
         />
+        <View style={{ marginTop: 8 }}>
+          <CountdownBadge
+            expectedDeliveryAt={order.expectedDeliveryAt}
+            deliveredAt={order.deliveredAt}
+            status={order.status}
+          />
+        </View>
       </View>
 
       <View

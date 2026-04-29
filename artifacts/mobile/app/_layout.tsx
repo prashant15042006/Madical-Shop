@@ -78,6 +78,10 @@ function RootLayoutNav() {
         options={{ title: "Inventory", headerBackTitle: "" }}
       />
       <Stack.Screen
+        name="shop/analytics"
+        options={{ title: "Analytics", headerBackTitle: "" }}
+      />
+      <Stack.Screen
         name="shop/order/[id]"
         options={{ title: "Order", headerBackTitle: "" }}
       />

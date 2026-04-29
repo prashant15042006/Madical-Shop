@@ -111,6 +111,8 @@ export interface Order {
   shopAddress: string;
   createdAt: number;
   /** @nullable */
+  expectedDeliveryAt: number | null;
+  /** @nullable */
   deliveredAt: number | null;
 }
 

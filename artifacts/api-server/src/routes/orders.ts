@@ -15,6 +15,8 @@ function toMs(value: Date | null): number | null {
   return value ? value.getTime() : null;
 }
 
+const DEFAULT_DELIVERY_WINDOW_MS = 60 * 60_000; // 60 minutes
+
 function orderToResponse(o: typeof ordersTable.$inferSelect) {
   return {
     id: o.id,
@@ -40,6 +42,7 @@ function orderToResponse(o: typeof ordersTable.$inferSelect) {
     shopMobile: o.shopMobile,
     shopAddress: o.shopAddress,
     createdAt: o.createdAt.getTime(),
+    expectedDeliveryAt: toMs(o.expectedDeliveryAt),
     deliveredAt: toMs(o.deliveredAt),
   };
 }
@@ -88,6 +91,11 @@ router.post("/orders", async (req, res): Promise<void> => {
     .from(shopsTable)
     .where(eq(shopsTable.id, MAIN_SHOP_ID));
 
+  const now = new Date();
+  const expectedDeliveryAt = new Date(
+    now.getTime() + DEFAULT_DELIVERY_WINDOW_MS,
+  );
+
   const [created] = await db
     .insert(ordersTable)
     .values({
@@ -109,6 +117,8 @@ router.post("/orders", async (req, res): Promise<void> => {
       shopName: shop?.shopName ?? "MediGo Shop",
       shopMobile: shop?.mobile ?? "",
       shopAddress: shop?.address ?? "",
+      createdAt: now,
+      expectedDeliveryAt,
     })
     .returning();
 

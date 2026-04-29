@@ -39,3 +39,6 @@ Hindi/Hinglish medicine delivery Expo app. One app for both customers and dukand
 - API contract in `lib/api-spec/openapi.yaml`. Run `pnpm --filter @workspace/api-spec run codegen` after changes.
 - On API server boot, `ensureSeed()` creates the main shop and 7 default medicines if missing.
 - Mobile screens use `useApp()` from `contexts/AppContext.tsx` which wraps the generated hooks.
+- **Delivery ETA**: Order has `expectedDeliveryAt` (createdAt + 60 min, set on create). `components/CountdownBadge.tsx` renders live countdown / "X min late" / "Delivered HH:MM" — used on customer order detail, customer orders list, shop order detail, shop dashboard list.
+- **Shop Analytics** (`app/shop/analytics.tsx`): today/week revenue + order count, pending/late/delivered tallies, average delivery time, top 5 selling medicines, low/out-of-stock alerts. Linked from shop dashboard.
+- **Notifications**: `lib/notifications.ts` + polling diff in `AppContext` (8s shop / 12s customer) fires local notifications on order placed/delivered/new-order.
