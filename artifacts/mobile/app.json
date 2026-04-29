@@ -34,6 +34,13 @@
         {
           "photosPermission": "Apna QR/barcode upload karne ke liye gallery access chahiye."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0aa672"
+        }
       ]
     ],
     "experiments": {

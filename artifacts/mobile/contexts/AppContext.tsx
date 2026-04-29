@@ -33,6 +33,7 @@ import {
 } from "@workspace/api-client-react";
 
 import { Medicine, withImage } from "@/constants/medicines";
+import { ensureNotificationPermission, notify } from "@/lib/notifications";
 
 export type Role = "customer" | "shop" | null;
 
@@ -116,6 +117,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setRole = useCallback((r: Role) => {
     setRoleState(r);
     AsyncStorage.setItem(STORAGE_KEYS.role, JSON.stringify(r)).catch(() => {});
+    if (r) ensureNotificationPermission().catch(() => {});
   }, []);
 
   const resetRole = useCallback(() => {
@@ -132,6 +134,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     query: {
       queryKey: getListOrdersQueryKey(ordersParams),
       enabled: hydrated && (role === "shop" || !!customerMobile),
+      // tez refresh — naye orders / status changes jaldi pakde
+      refetchInterval: role === "shop" ? 8_000 : 12_000,
+      refetchIntervalInBackground: false,
+      staleTime: 3_000,
     },
   });
 
@@ -215,6 +221,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         JSON.stringify(input.customerMobile),
       ).catch(() => {});
       await Promise.all([invalidateOrders(), invalidateMedicines()]);
+      notify(
+        "Order place ho gaya",
+        `${input.item.name} × ${input.item.quantity} — ₹${input.total}`,
+        { orderId: order.id, kind: "placed" },
+      );
       return order;
     },
     [createOrderMut, invalidateOrders, invalidateMedicines],
@@ -242,6 +253,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [medicinesQuery.data],
   );
   const orders = ordersQuery.data ?? [];
+
+  // Detect changes to orders and fire local notifications.
+  const seenIdsRef = React.useRef<Set<string>>(new Set());
+  const seenStatusRef = React.useRef<Map<string, string>>(new Map());
+  const initializedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (!ordersQuery.data) return;
+    const seenIds = seenIdsRef.current;
+    const seenStatus = seenStatusRef.current;
+
+    if (!initializedRef.current) {
+      // first load — just record current state, don't notify
+      for (const o of ordersQuery.data) {
+        seenIds.add(o.id);
+        seenStatus.set(o.id, o.status);
+      }
+      initializedRef.current = true;
+      return;
+    }
+
+    for (const o of ordersQuery.data) {
+      if (!seenIds.has(o.id)) {
+        seenIds.add(o.id);
+        seenStatus.set(o.id, o.status);
+        if (role === "shop") {
+          notify(
+            "Naya order aaya!",
+            `${o.customerName} — ${o.item.name} × ${o.item.quantity} (₹${o.total})`,
+            { orderId: o.id, kind: "new_order" },
+          );
+        }
+        continue;
+      }
+      const prev = seenStatus.get(o.id);
+      if (prev && prev !== o.status) {
+        seenStatus.set(o.id, o.status);
+        if (role === "customer" && o.status === "delivered") {
+          notify(
+            "Order deliver ho gaya",
+            `${o.item.name} pahuch gayi. Rating de kar batayein!`,
+            { orderId: o.id, kind: "delivered" },
+          );
+        }
+      }
+    }
+  }, [ordersQuery.data, role]);
 
   const shopReady = !!(shop.shopName && shop.mobile && shop.upiId);
   const loaded = hydrated && !shopQuery.isLoading && !medicinesQuery.isLoading;
