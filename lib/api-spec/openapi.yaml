@@ -365,9 +365,12 @@ components:
         customerName: { type: string }
         customerMobile: { type: string }
         customerAddress: { type: string }
+        customerLat: { type: ["number", "null"] }
+        customerLng: { type: ["number", "null"] }
         item:
           $ref: "#/components/schemas/OrderItem"
         total: { type: number }
+        deliveryCharge: { type: number }
         paymentMethod: { type: string }
         status: { type: string }
         customerRating: { type: ["integer", "null"] }
@@ -383,8 +386,11 @@ components:
         - customerName
         - customerMobile
         - customerAddress
+        - customerLat
+        - customerLng
         - item
         - total
+        - deliveryCharge
         - paymentMethod
         - status
         - customerRating
@@ -401,9 +407,12 @@ components:
         customerName: { type: string }
         customerMobile: { type: string }
         customerAddress: { type: string }
+        customerLat: { type: ["number", "null"] }
+        customerLng: { type: ["number", "null"] }
         item:
           $ref: "#/components/schemas/OrderItemInput"
         total: { type: number }
+        deliveryCharge: { type: number }
         paymentMethod: { type: string }
       required:
         - customerName

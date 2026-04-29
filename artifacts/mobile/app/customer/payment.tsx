@@ -22,12 +22,14 @@ export default function PaymentScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id, qty, name, mobile, address } = useLocalSearchParams<{
+  const { id, qty, name, mobile, address, lat, lng } = useLocalSearchParams<{
     id: string;
     qty: string;
     name: string;
     mobile: string;
     address: string;
+    lat?: string;
+    lng?: string;
   }>();
 
   const { medicines, shop, placeOrder } = useApp();
@@ -39,7 +41,11 @@ export default function PaymentScreen() {
   const unitFinal = medicine
     ? finalPrice(medicine.price, medicine.discountPercent)
     : 0;
-  const total = +(unitFinal * quantity).toFixed(2);
+  const DELIVERY_CHARGE = 10;
+  const itemSubtotal = +(unitFinal * quantity).toFixed(2);
+  const total = +(itemSubtotal + DELIVERY_CHARGE).toFixed(2);
+  const customerLat = lat && lat.length > 0 ? Number(lat) : null;
+  const customerLng = lng && lng.length > 0 ? Number(lng) : null;
 
   const upiString = `upi://pay?pa=${encodeURIComponent(
     shop.upiId || "shop@medigo",
@@ -72,6 +78,8 @@ export default function PaymentScreen() {
         customerName: String(name),
         customerMobile: String(mobile),
         customerAddress: String(address),
+        customerLat,
+        customerLng,
         item: {
           medicineId: medicine.id,
           name: medicine.name,
@@ -83,6 +91,7 @@ export default function PaymentScreen() {
           quantity,
         },
         total,
+        deliveryCharge: DELIVERY_CHARGE,
         paymentMethod: method,
       });
       router.replace({
@@ -150,6 +159,39 @@ export default function PaymentScreen() {
         </Text>
       </View>
 
+      <View
+        style={[
+          styles.breakdownCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.brRow}>
+          <Text style={[styles.brLabel, { color: colors.mutedForeground }]}>
+            Items
+          </Text>
+          <Text style={[styles.brValue, { color: colors.foreground }]}>
+            ₹{itemSubtotal}
+          </Text>
+        </View>
+        <View style={styles.brRow}>
+          <Text style={[styles.brLabel, { color: colors.mutedForeground }]}>
+            Delivery Charge
+          </Text>
+          <Text style={[styles.brValue, { color: colors.foreground }]}>
+            ₹{DELIVERY_CHARGE}
+          </Text>
+        </View>
+        <View style={[styles.brDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.brRow}>
+          <Text style={[styles.brStrong, { color: colors.foreground }]}>
+            Total
+          </Text>
+          <Text style={[styles.brStrong, { color: colors.foreground }]}>
+            ₹{total}
+          </Text>
+        </View>
+      </View>
+
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
           Delivery Address
@@ -169,6 +211,12 @@ export default function PaymentScreen() {
           <Text style={[styles.addressLine, { color: colors.mutedForeground }]}>
             {String(address)}
           </Text>
+          {customerLat != null ? (
+            <View style={styles.locChip}>
+              <Feather name="navigation" size={11} color="#1d4ed8" />
+              <Text style={styles.locChipText}>Live location attached</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -488,5 +536,45 @@ const styles = StyleSheet.create({
   codValue: {
     fontFamily: "Inter_700Bold",
     fontSize: 22,
+  },
+  breakdownCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  brRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  brLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+  },
+  brValue: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  brStrong: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+  },
+  brDivider: { height: 1, marginVertical: 4 },
+  locChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#dbeafe",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  locChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#1d4ed8",
   },
 });

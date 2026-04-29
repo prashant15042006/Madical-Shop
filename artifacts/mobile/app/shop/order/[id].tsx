@@ -49,6 +49,23 @@ export default function ShopOrderDetail() {
     Linking.openURL(`tel:${order.customerMobile}`).catch(() => {});
   };
 
+  const openMap = () => {
+    if (order.customerLat == null || order.customerLng == null) return;
+    const lat = order.customerLat;
+    const lng = order.customerLng;
+    const label = encodeURIComponent(order.customerName);
+    const url = Platform.select({
+      ios: `maps://?q=${label}&ll=${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
+      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    });
+    Linking.openURL(url!).catch(() => {
+      Linking.openURL(
+        `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+      ).catch(() => {});
+    });
+  };
+
   const onDeliver = () => {
     Alert.alert(
       "Confirm Delivery",
@@ -123,6 +140,16 @@ export default function ShopOrderDetail() {
           value={isDelivered ? "Delivered" : "Naya order"}
           highlight={isDelivered ? colors.primary : "#f59e0b"}
         />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <Row
+          label="Items"
+          value={`₹${(order.total - (order.deliveryCharge ?? 0)).toFixed(2)}`}
+        />
+        <Row
+          label="Delivery Charge"
+          value={`₹${(order.deliveryCharge ?? 0).toFixed(0)}`}
+        />
+        <Row label="Total" value={`₹${order.total}`} highlight={colors.primary} />
         <View style={{ marginTop: 8 }}>
           <CountdownBadge
             expectedDeliveryAt={order.expectedDeliveryAt}
@@ -154,6 +181,43 @@ export default function ShopOrderDetail() {
           label="Delivery Address"
           value={order.customerAddress}
         />
+        {order.customerLat != null && order.customerLng != null ? (
+          <Pressable
+            onPress={openMap}
+            style={({ pressed }) => [
+              styles.mapBtn,
+              {
+                backgroundColor: colors.primary,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="navigation"
+              size={16}
+              color={colors.primaryForeground}
+            />
+            <Text
+              style={[styles.mapBtnText, { color: colors.primaryForeground }]}
+            >
+              Live Location — Map pe dekhein
+            </Text>
+            <Feather
+              name="external-link"
+              size={14}
+              color={colors.primaryForeground}
+            />
+          </Pressable>
+        ) : (
+          <View style={styles.mapHint}>
+            <Feather name="info" size={12} color={colors.mutedForeground} />
+            <Text
+              style={[styles.mapHintText, { color: colors.mutedForeground }]}
+            >
+              Customer ne live location share nahi ki
+            </Text>
+          </View>
+        )}
       </View>
 
       {!isDelivered ? (
@@ -281,6 +345,31 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
     marginTop: 2,
+  },
+  mapBtn: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+  },
+  mapBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  mapHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  mapHintText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
   },
   divider: {
     height: 1,

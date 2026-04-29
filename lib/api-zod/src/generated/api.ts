@@ -135,6 +135,8 @@ export const ListOrdersResponseItem = zod.object({
   customerName: zod.string(),
   customerMobile: zod.string(),
   customerAddress: zod.string(),
+  customerLat: zod.number().nullable(),
+  customerLng: zod.number().nullable(),
   item: zod.object({
     medicineId: zod.string(),
     name: zod.string(),
@@ -146,6 +148,7 @@ export const ListOrdersResponseItem = zod.object({
     quantity: zod.number(),
   }),
   total: zod.number(),
+  deliveryCharge: zod.number(),
   paymentMethod: zod.string(),
   status: zod.string(),
   customerRating: zod.number().nullable(),
@@ -165,6 +168,8 @@ export const CreateOrderBody = zod.object({
   customerName: zod.string(),
   customerMobile: zod.string(),
   customerAddress: zod.string(),
+  customerLat: zod.number().nullish(),
+  customerLng: zod.number().nullish(),
   item: zod.object({
     medicineId: zod.string(),
     name: zod.string(),
@@ -176,6 +181,7 @@ export const CreateOrderBody = zod.object({
     quantity: zod.number(),
   }),
   total: zod.number(),
+  deliveryCharge: zod.number().optional(),
   paymentMethod: zod.string(),
 });
 
@@ -192,6 +198,8 @@ export const GetOrderResponse = zod.object({
   customerName: zod.string(),
   customerMobile: zod.string(),
   customerAddress: zod.string(),
+  customerLat: zod.number().nullable(),
+  customerLng: zod.number().nullable(),
   item: zod.object({
     medicineId: zod.string(),
     name: zod.string(),
@@ -203,6 +211,7 @@ export const GetOrderResponse = zod.object({
     quantity: zod.number(),
   }),
   total: zod.number(),
+  deliveryCharge: zod.number(),
   paymentMethod: zod.string(),
   status: zod.string(),
   customerRating: zod.number().nullable(),
@@ -227,6 +236,8 @@ export const MarkOrderDeliveredResponse = zod.object({
   customerName: zod.string(),
   customerMobile: zod.string(),
   customerAddress: zod.string(),
+  customerLat: zod.number().nullable(),
+  customerLng: zod.number().nullable(),
   item: zod.object({
     medicineId: zod.string(),
     name: zod.string(),
@@ -238,6 +249,7 @@ export const MarkOrderDeliveredResponse = zod.object({
     quantity: zod.number(),
   }),
   total: zod.number(),
+  deliveryCharge: zod.number(),
   paymentMethod: zod.string(),
   status: zod.string(),
   customerRating: zod.number().nullable(),
@@ -268,6 +280,8 @@ export const RateOrderResponse = zod.object({
   customerName: zod.string(),
   customerMobile: zod.string(),
   customerAddress: zod.string(),
+  customerLat: zod.number().nullable(),
+  customerLng: zod.number().nullable(),
   item: zod.object({
     medicineId: zod.string(),
     name: zod.string(),
@@ -279,6 +293,7 @@ export const RateOrderResponse = zod.object({
     quantity: zod.number(),
   }),
   total: zod.number(),
+  deliveryCharge: zod.number(),
   paymentMethod: zod.string(),
   status: zod.string(),
   customerRating: zod.number().nullable(),

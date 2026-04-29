@@ -11,7 +11,12 @@ export interface CreateOrderBody {
   customerName: string;
   customerMobile: string;
   customerAddress: string;
+  /** @nullable */
+  customerLat?: number | null;
+  /** @nullable */
+  customerLng?: number | null;
   item: OrderItemInput;
   total: number;
+  deliveryCharge?: number;
   paymentMethod: string;
 }

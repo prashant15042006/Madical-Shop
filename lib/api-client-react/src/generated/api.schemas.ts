@@ -100,8 +100,13 @@ export interface Order {
   customerName: string;
   customerMobile: string;
   customerAddress: string;
+  /** @nullable */
+  customerLat: number | null;
+  /** @nullable */
+  customerLng: number | null;
   item: OrderItem;
   total: number;
+  deliveryCharge: number;
   paymentMethod: string;
   status: string;
   /** @nullable */
@@ -120,8 +125,13 @@ export interface CreateOrderBody {
   customerName: string;
   customerMobile: string;
   customerAddress: string;
+  /** @nullable */
+  customerLat?: number | null;
+  /** @nullable */
+  customerLng?: number | null;
   item: OrderItemInput;
   total: number;
+  deliveryCharge?: number;
   paymentMethod: string;
 }
 

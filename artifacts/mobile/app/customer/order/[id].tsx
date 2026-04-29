@@ -129,6 +129,16 @@ export default function OrderDetail() {
           value={isDelivered ? "Delivered" : "Order Placed"}
           highlight={isDelivered ? colors.primary : undefined}
         />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <Row
+          label="Items"
+          value={`₹${(order.total - (order.deliveryCharge ?? 0)).toFixed(2)}`}
+        />
+        <Row
+          label="Delivery Charge"
+          value={`₹${(order.deliveryCharge ?? 0).toFixed(0)}`}
+        />
+        <Row label="Total" value={`₹${order.total}`} highlight={colors.primary} />
         <View style={{ marginTop: 8 }}>
           <CountdownBadge
             expectedDeliveryAt={order.expectedDeliveryAt}

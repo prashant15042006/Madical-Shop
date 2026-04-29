@@ -1,10 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -18,6 +21,8 @@ import { QuantityStepper } from "@/components/QuantityStepper";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { finalPrice } from "@/constants/medicines";
+
+const DELIVERY_CHARGE = 10;
 
 export default function BuyScreen() {
   const colors = useColors();
@@ -34,15 +39,71 @@ export default function BuyScreen() {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [locating, setLocating] = useState(false);
 
   const unitFinal = medicine
     ? finalPrice(medicine.price, medicine.discountPercent)
     : 0;
-  const total = +(unitFinal * qty).toFixed(2);
+  const itemSubtotal = +(unitFinal * qty).toFixed(2);
+  const total = +(itemSubtotal + DELIVERY_CHARGE).toFixed(2);
   const originalTotal = medicine ? medicine.price * qty : 0;
-  const savings = +(originalTotal - total).toFixed(2);
+  const savings = +(originalTotal - itemSubtotal).toFixed(2);
   const hasDiscount = medicine ? (medicine.discountPercent ?? 0) > 0 : false;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
+
+  const useMyLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted") {
+        Alert.alert(
+          "Permission chahiye",
+          "Live location use karne ke liye location permission de.",
+        );
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setLat(pos.coords.latitude);
+      setLng(pos.coords.longitude);
+      try {
+        const places = await Location.reverseGeocodeAsync({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        const p = places[0];
+        if (p) {
+          const parts = [
+            p.name,
+            p.street,
+            p.district,
+            p.city,
+            p.region,
+            p.postalCode,
+          ].filter(Boolean);
+          if (parts.length > 0) {
+            setAddress((prev) =>
+              prev.trim().length === 0 ? parts.join(", ") : prev,
+            );
+          }
+        }
+      } catch {
+        // reverse geocode is optional
+      }
+      Alert.alert(
+        "Location pakad li",
+        "Aapka live location dukandar ko bhej diya jayega.",
+      );
+    } catch {
+      Alert.alert("Location nahi mili", "Phir se try karein.");
+    } finally {
+      setLocating(false);
+    }
+  };
 
   if (!medicine) {
     return (
@@ -77,6 +138,8 @@ export default function BuyScreen() {
         name: name.trim(),
         mobile: mobile.trim(),
         address: address.trim(),
+        lat: lat != null ? String(lat) : "",
+        lng: lng != null ? String(lng) : "",
       },
     });
   };
@@ -219,14 +282,92 @@ export default function BuyScreen() {
             placeholder="10 digit number"
             keyboardType="phone-pad"
           />
-          <Field
-            label="Delivery Location"
-            value={address}
-            onChange={setAddress}
-            placeholder="Ghar ka pura address"
-            multiline
-          />
+          <View style={{ gap: 8 }}>
+            <Pressable
+              onPress={useMyLocation}
+              style={({ pressed }) => [
+                styles.locationBtn,
+                {
+                  backgroundColor: lat != null ? colors.accent : colors.card,
+                  borderColor: lat != null ? colors.primary : colors.border,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              {locating ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Feather
+                  name={lat != null ? "check-circle" : "navigation"}
+                  size={18}
+                  color={colors.primary}
+                />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.locationTitle, { color: colors.foreground }]}
+                >
+                  {lat != null
+                    ? "Live location use ho rahi hai"
+                    : "Live location use karein"}
+                </Text>
+                <Text
+                  style={[
+                    styles.locationSub,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {lat != null
+                    ? `${lat.toFixed(5)}, ${lng?.toFixed(5)}`
+                    : "Dukandar ko sahi jagah dikhega — tezi se delivery"}
+                </Text>
+              </View>
+              {lat != null ? (
+                <Pressable
+                  onPress={() => {
+                    setLat(null);
+                    setLng(null);
+                  }}
+                  hitSlop={8}
+                >
+                  <Feather name="x" size={18} color={colors.mutedForeground} />
+                </Pressable>
+              ) : null}
+            </Pressable>
+            <Field
+              label="Delivery Address"
+              value={address}
+              onChange={setAddress}
+              placeholder="Ghar ka pura address (gali, makaan no., landmark)"
+              multiline
+            />
+          </View>
         </View>
+      </View>
+
+      <View
+        style={[
+          styles.priceBreakdown,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <BreakdownRow
+          label={`Items (${qty})`}
+          value={`₹${itemSubtotal}`}
+          colors={colors}
+        />
+        <BreakdownRow
+          label="Delivery Charge"
+          value={`₹${DELIVERY_CHARGE}`}
+          colors={colors}
+        />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <BreakdownRow
+          label="Total"
+          value={`₹${total}`}
+          colors={colors}
+          bold
+        />
       </View>
 
       <PrimaryButton
@@ -235,6 +376,41 @@ export default function BuyScreen() {
         onPress={onContinue}
       />
     </KeyboardAwareScrollViewCompat>
+  );
+}
+
+function BreakdownRow({
+  label,
+  value,
+  colors,
+  bold,
+}: {
+  label: string;
+  value: string;
+  colors: ReturnType<typeof useColors>;
+  bold?: boolean;
+}) {
+  return (
+    <View style={styles.breakdownRow}>
+      <Text
+        style={[
+          bold ? styles.breakdownStrong : styles.breakdownLabel,
+          {
+            color: bold ? colors.foreground : colors.mutedForeground,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[
+          bold ? styles.breakdownStrong : styles.breakdownValue,
+          { color: colors.foreground },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -369,5 +545,49 @@ const styles = StyleSheet.create({
   savingsText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
+  },
+  locationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  locationTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  locationSub: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  priceBreakdown: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  breakdownLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+  },
+  breakdownValue: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  breakdownStrong: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 4,
   },
 });

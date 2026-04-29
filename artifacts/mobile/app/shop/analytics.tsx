@@ -33,6 +33,7 @@ export default function ShopAnalytics() {
     const weekStart = todayStart - 6 * DAY_MS;
 
     let todayRevenue = 0;
+    let todayProfit = 0;
     let weekRevenue = 0;
     let totalRevenue = 0;
     let todayOrders = 0;
@@ -48,7 +49,48 @@ export default function ShopAnalytics() {
       { name: string; qty: number; revenue: number; imageKey: string }
     > = {};
 
+    // today's delivered medicines (separate from total counts)
+    const todayDeliveredItems: {
+      name: string;
+      qty: number;
+      revenue: number;
+    }[] = [];
+    const todayDeliveredMap: Record<
+      string,
+      { name: string; qty: number; revenue: number }
+    > = {};
+
+    // last 7 days breakdown
+    const dayBuckets: {
+      label: string;
+      dateKey: number;
+      orders: number;
+      delivered: number;
+      revenue: number;
+      profit: number;
+    }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const t = todayStart - i * DAY_MS;
+      const d = new Date(t);
+      const day = d.getDate();
+      const monthShort = d.toLocaleDateString("en-IN", { month: "short" });
+      dayBuckets.push({
+        label: i === 0 ? "Aaj" : i === 1 ? "Kal" : `${day} ${monthShort}`,
+        dateKey: t,
+        orders: 0,
+        delivered: 0,
+        revenue: 0,
+        profit: 0,
+      });
+    }
+    const bucketIndex = (ts: number) => {
+      const dayStart = startOfDay(new Date(ts));
+      const idx = dayBuckets.findIndex((b) => b.dateKey === dayStart);
+      return idx;
+    };
+
     for (const o of orders) {
+      const itemRevenue = o.total - (o.deliveryCharge ?? 0);
       totalRevenue += o.total;
       if (o.createdAt >= todayStart) {
         todayOrders += 1;
@@ -57,12 +99,34 @@ export default function ShopAnalytics() {
       if (o.createdAt >= weekStart) {
         weekOrders += 1;
         weekRevenue += o.total;
+        const idx = bucketIndex(o.createdAt);
+        if (idx >= 0) {
+          dayBuckets[idx].orders += 1;
+          if (o.status === "delivered") {
+            dayBuckets[idx].delivered += 1;
+            dayBuckets[idx].revenue += o.total;
+            dayBuckets[idx].profit += itemRevenue;
+          }
+        }
       }
       if (o.status === "delivered") {
         deliveredCount += 1;
         if (o.deliveredAt) {
           totalDeliveryMs += o.deliveredAt - o.createdAt;
           deliveredWithTimingCount += 1;
+        }
+        if (o.createdAt >= todayStart) {
+          todayProfit += itemRevenue;
+          const k = o.item.medicineId || o.item.name;
+          if (!todayDeliveredMap[k]) {
+            todayDeliveredMap[k] = {
+              name: o.item.name,
+              qty: 0,
+              revenue: 0,
+            };
+          }
+          todayDeliveredMap[k].qty += o.item.quantity;
+          todayDeliveredMap[k].revenue += o.total;
         }
       } else {
         pendingCount += 1;
@@ -82,6 +146,10 @@ export default function ShopAnalytics() {
       productCount[key].revenue += o.total;
     }
 
+    todayDeliveredItems.push(
+      ...Object.values(todayDeliveredMap).sort((a, b) => b.qty - a.qty),
+    );
+
     const topProducts = Object.values(productCount)
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5);
@@ -98,6 +166,7 @@ export default function ShopAnalytics() {
 
     return {
       todayRevenue,
+      todayProfit,
       weekRevenue,
       totalRevenue,
       todayOrders,
@@ -107,6 +176,8 @@ export default function ShopAnalytics() {
       lateCount,
       avgDeliveryMin,
       topProducts,
+      todayDeliveredItems,
+      dayBuckets: dayBuckets.slice().reverse(),
       lowStock,
       outOfStock,
     };
@@ -173,6 +244,132 @@ export default function ShopAnalytics() {
           value={String(stats.deliveredCount)}
           color="#16a34a"
         />
+      </View>
+
+      <Text style={[styles.h2, { color: colors.foreground }]}>
+        Aaj ki delivery report
+      </Text>
+      {stats.todayDeliveredItems.length === 0 ? (
+        <View
+          style={[
+            styles.infoCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Feather name="package" size={20} color={colors.mutedForeground} />
+          <Text style={[styles.infoSub, { color: colors.mutedForeground }]}>
+            Aaj abhi tak koi delivery nahi hui
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.deliveryCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.deliveryTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[styles.deliveryLabel, { color: colors.mutedForeground }]}
+              >
+                Aaj ki net kamai (delivery charge ke baad)
+              </Text>
+              <Text
+                style={[styles.deliveryValue, { color: colors.foreground }]}
+              >
+                ₹{stats.todayProfit.toFixed(0)}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.profitChip,
+                { backgroundColor: "#dcfce7" },
+              ]}
+            >
+              <Feather name="trending-up" size={14} color="#15803d" />
+              <Text style={styles.profitChipText}>
+                {stats.todayDeliveredItems.length} item
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.deliveryDivider, { backgroundColor: colors.border }]} />
+          {stats.todayDeliveredItems.map((it, i) => (
+            <View key={it.name + i} style={styles.deliveryRow}>
+              <Text
+                style={[styles.deliveryName, { color: colors.foreground }]}
+                numberOfLines={1}
+              >
+                {it.name}
+              </Text>
+              <Text
+                style={[styles.deliveryQty, { color: colors.mutedForeground }]}
+              >
+                × {it.qty}
+              </Text>
+              <Text
+                style={[styles.deliveryAmt, { color: colors.foreground }]}
+              >
+                ₹{it.revenue.toFixed(0)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <Text style={[styles.h2, { color: colors.foreground }]}>
+        7-din ka day-wise report
+      </Text>
+      <View
+        style={[
+          styles.tableCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View
+          style={[
+            styles.tableHeader,
+            { borderBottomColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.thDay, { color: colors.mutedForeground }]}>
+            Din
+          </Text>
+          <Text style={[styles.thNum, { color: colors.mutedForeground }]}>
+            Orders
+          </Text>
+          <Text style={[styles.thNum, { color: colors.mutedForeground }]}>
+            Delivered
+          </Text>
+          <Text style={[styles.thNum, { color: colors.mutedForeground }]}>
+            Kamai
+          </Text>
+        </View>
+        {stats.dayBuckets.map((d) => (
+          <View
+            key={d.dateKey}
+            style={[styles.tableRow, { borderBottomColor: colors.border }]}
+          >
+            <Text style={[styles.tdDay, { color: colors.foreground }]}>
+              {d.label}
+            </Text>
+            <Text style={[styles.tdNum, { color: colors.foreground }]}>
+              {d.orders}
+            </Text>
+            <Text style={[styles.tdNum, { color: "#16a34a" }]}>
+              {d.delivered}
+            </Text>
+            <Text
+              style={[
+                styles.tdNum,
+                styles.tdStrong,
+                { color: colors.foreground },
+              ]}
+            >
+              ₹{d.profit.toFixed(0)}
+            </Text>
+          </View>
+        ))}
       </View>
 
       {stats.avgDeliveryMin > 0 ? (
@@ -433,5 +630,108 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 13,
     paddingLeft: 4,
+  },
+  deliveryCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  deliveryTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deliveryLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+  },
+  deliveryValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 24,
+    marginTop: 2,
+  },
+  profitChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  profitChipText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    color: "#15803d",
+  },
+  deliveryDivider: {
+    height: 1,
+    marginVertical: 6,
+  },
+  deliveryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deliveryName: {
+    flex: 1,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  deliveryQty: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+  },
+  deliveryAmt: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    minWidth: 60,
+    textAlign: "right",
+  },
+  tableCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    alignItems: "center",
+  },
+  thDay: {
+    flex: 1.2,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  thNum: {
+    flex: 1,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    textAlign: "right",
+  },
+  tdDay: {
+    flex: 1.2,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+  },
+  tdNum: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    textAlign: "right",
+  },
+  tdStrong: {
+    fontFamily: "Inter_700Bold",
   },
 });

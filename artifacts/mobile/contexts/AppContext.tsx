@@ -66,8 +66,11 @@ export type PlaceOrderInput = {
   customerName: string;
   customerMobile: string;
   customerAddress: string;
+  customerLat?: number | null;
+  customerLng?: number | null;
   item: OrderItemInput;
   total: number;
+  deliveryCharge?: number;
   paymentMethod: "upi" | "cod";
 };
 
@@ -209,8 +212,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           customerName: input.customerName,
           customerMobile: input.customerMobile,
           customerAddress: input.customerAddress,
+          customerLat: input.customerLat ?? null,
+          customerLng: input.customerLng ?? null,
           item: input.item,
           total: input.total,
+          deliveryCharge: input.deliveryCharge ?? 10,
           paymentMethod: input.paymentMethod,
         },
       });
