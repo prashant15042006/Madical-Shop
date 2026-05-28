@@ -1,0 +1,33 @@
+# Render Blueprint for MediGo API Server
+services:
+  - type: web
+    name: medigo-api
+    runtime: node
+    plan: free
+    buildCommand: |
+      npm install -g pnpm@9
+      pnpm install
+      pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medigo-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+    # Branch to deploy
+    branch: main
+
+databases:
+  - name: medigo-db
+    databaseName: medigo
+    user: medigo
+    plan: free
+    ipAllowList: []
