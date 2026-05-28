@@ -15,8 +15,10 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { Empty } from "@/components/Empty";
 import { MedicineCard } from "@/components/MedicineCard";
 import { SearchBar } from "@/components/SearchBar";
+import { SortFilter } from "@/components/SortFilter";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { type SortOption } from "@/components/SortFilter";
 
 export default function CustomerDashboard() {
   const colors = useColors();
@@ -25,6 +27,7 @@ export default function CustomerDashboard() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortOption>("default");
   const { medicines, orders } = useApp();
 
   const filtered = useMemo(() => {
@@ -39,8 +42,17 @@ export default function CustomerDashboard() {
           m.description.toLowerCase().includes(q),
       );
     }
+    if (sort === "name-asc") {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sort === "price-asc") {
+      list = [...list].sort((a, b) => a.price - b.price);
+    } else if (sort === "price-desc") {
+      list = [...list].sort((a, b) => b.price - a.price);
+    } else if (sort === "discount-desc") {
+      list = [...list].sort((a, b) => b.discountPercent - a.discountPercent);
+    }
     return list;
-  }, [medicines, query, mode, category]);
+  }, [medicines, query, mode, category, sort]);
 
   const title = mode === "otc" ? "OTC Medicines" : "All Medicines";
   const subtitle =
@@ -84,6 +96,10 @@ export default function CustomerDashboard() {
             <View style={{ height: 10 }} />
             <View style={styles.filterRow}>
               <CategoryFilter selected={category} onChange={setCategory} />
+            </View>
+            <View style={{ height: 6 }} />
+            <View style={styles.filterRow}>
+              <SortFilter selected={sort} onChange={setSort} />
             </View>
             <View style={{ height: 8 }} />
           </View>
