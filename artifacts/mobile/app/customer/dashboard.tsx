@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryFilter } from "@/components/CategoryFilter";
 import { Empty } from "@/components/Empty";
 import { MedicineCard } from "@/components/MedicineCard";
 import { SearchBar } from "@/components/SearchBar";
@@ -23,11 +24,13 @@ export default function CustomerDashboard() {
   const insets = useSafeAreaInsets();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
   const { medicines, orders } = useApp();
 
   const filtered = useMemo(() => {
     let list = medicines;
     if (mode === "otc") list = list.filter((m) => m.otc);
+    if (category) list = list.filter((m) => m.imageKey === category);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -37,7 +40,7 @@ export default function CustomerDashboard() {
       );
     }
     return list;
-  }, [medicines, query, mode]);
+  }, [medicines, query, mode, category]);
 
   const title = mode === "otc" ? "OTC Medicines" : "All Medicines";
   const subtitle =
@@ -46,6 +49,16 @@ export default function CustomerDashboard() {
       : "Naam ya kaam likhke search karein";
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
+
+  const emptySubtitle = useMemo(() => {
+    if (query && category)
+      return `"${query}" naam se koi ${getCategoryLabel(category)} available nahi hai`;
+    if (query)
+      return `"${query}" naam se koi dawai available nahi hai`;
+    if (category)
+      return `Is category mein abhi koi dawai nahi hai`;
+    return "Iss category me abhi koi dawai nahi hai";
+  }, [query, category]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -68,6 +81,10 @@ export default function CustomerDashboard() {
             </Text>
             <View style={{ height: 14 }} />
             <SearchBar value={query} onChange={setQuery} />
+            <View style={{ height: 10 }} />
+            <View style={styles.filterRow}>
+              <CategoryFilter selected={category} onChange={setCategory} />
+            </View>
             <View style={{ height: 8 }} />
           </View>
         }
@@ -88,12 +105,8 @@ export default function CustomerDashboard() {
           <View style={{ paddingTop: 24 }}>
             <Empty
               icon="search"
-              title="Medicine not found"
-              subtitle={
-                query
-                  ? `"${query}" naam se koi dawai available nahi hai`
-                  : "Iss category me abhi koi dawai nahi hai"
-              }
+              title="Koi dawai nahi mili"
+              subtitle={emptySubtitle}
             />
           </View>
         }
@@ -120,6 +133,19 @@ export default function CustomerDashboard() {
   );
 }
 
+function getCategoryLabel(imageKey: string): string {
+  const map: Record<string, string> = {
+    paracetamol: "Tablet",
+    capsule: "Capsule",
+    syrup: "Syrup",
+    blister: "Blister Pack",
+    inhaler: "Inhaler",
+    vitamin: "Vitamin",
+    eyedrops: "Eye Drops",
+  };
+  return map[imageKey] ?? imageKey;
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -130,6 +156,9 @@ const styles = StyleSheet.create({
   },
   headerWrap: {
     paddingTop: 4,
+  },
+  filterRow: {
+    marginHorizontal: -16,
   },
   title: {
     fontFamily: "Inter_700Bold",
