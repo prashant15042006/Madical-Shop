@@ -48,3 +48,21 @@ id = "l__7vsJ73N1O4rCeUmmj0"
 uri = "file://artifacts/mobile/assets/images/med_eyedrops.png"
 type = "image"
 title = "eye drops bottle"
+
+[[generated]]
+id = "JhKJ10wg84xObIj8_RCI1"
+uri = "file://attached_assets/generated_images/adaptive-icon.png"
+type = "image"
+title = "medigo adaptive icon"
+
+[[generated]]
+id = "CkvGhXWU2NkbwH4qipzZq"
+uri = "file://attached_assets/generated_images/splash-icon.png"
+type = "image"
+title = "medigo splash icon"
+
+[[generated]]
+id = "ns0X4qekx2mTn93J-X7uE"
+uri = "file://attached_assets/generated_images/play-store-feature.png"
+type = "image"
+title = "play store feature graphic"

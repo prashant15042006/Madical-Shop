@@ -2,20 +2,17 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import Constants from "expo-constants";
 
 function resolveBaseUrl(): string {
+  // Production API URL - bhai, yahan apna server domain daalein
+  const PROD_API_URL = "https://medigo-api.apkaapna.com"; // TODO: replace with actual domain
+
   const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (explicit) return explicit.replace(/\/+$/, "");
 
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
 
-  const expoHost =
-    Constants.expoConfig?.hostUri ?? Constants.expoGoConfig?.hostUri;
-  if (expoHost) {
-    const host = expoHost.split(":")[0];
-    return `http://${host}`;
-  }
-
-  return "";
+  // Production standalone ke liye fallback domain
+  return PROD_API_URL;
 }
 
 const base = resolveBaseUrl();
