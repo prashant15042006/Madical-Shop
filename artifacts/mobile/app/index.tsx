@@ -64,7 +64,7 @@ export default function RoleScreen() {
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad =
-    Platform.OS === "web" ? Math.max(insets.bottom, 34) : insets.bottom + 8;
+    Platform.OS === "web" ? Math.max(insets.bottom, 34) : insets.bottom + 24;
 
   return (
     <LinearGradient
