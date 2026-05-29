@@ -1,17 +1,14 @@
 {
   "version": 2,
   "name": "medigo-app",
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "frontend/static-build"
-      }
-    }
-  ],
+  "buildCommand": "pnpm install && pnpm --filter @workspace/frontend run build",
+  "outputDirectory": "frontend/static-build",
+  "env": {
+    "PNPM_HOME": "/root/.pnpm"
+  },
+  "installCommand": "pnpm install --frozen-lockfile",
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/frontend/static-build/index.html" }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

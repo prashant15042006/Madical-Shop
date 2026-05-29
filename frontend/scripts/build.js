@@ -95,7 +95,7 @@ function getAppName() {
 }
 
 function writeStaticLandingPage(baseUrl, appName) {
-  const templatePath = path.resolve(__dirname, "templates", "landing-page.html");
+  const templatePath = path.resolve(__dirname, "..", "server", "templates", "landing-page.html");
   const outputPath = path.join(projectRoot, "static-build", "index.html");
   const template = fs.readFileSync(templatePath, "utf-8");
   const host = new URL(baseUrl).host;

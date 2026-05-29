@@ -1,0 +1,64 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+.pnpm-store
+pnpm-lock.yaml
+
+# Build artifacts (except what Vercel needs)
+dist
+.next
+.nuxt
+build
+coverage
+.pytest_cache
+.venv
+
+# Development
+.env.local
+.env.development
+.replit*
+.metro-cache
+
+# Replit
+artifacts
+attached_assets
+
+# Documentation
+*.md
+README.md
+DEPLOYMENT_GUIDE.md
+GITHUB_PUSH_GUIDE.md
+
+# Render/other CI
+render.yaml
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__
+tests
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend (not needed for Vercel frontend build)
+backend/
+lib/
+scripts/
+
+# Other platforms
+tsconfig.base.json
+index.html
+push-to-github.sh
