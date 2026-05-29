@@ -1,12 +1,13 @@
 {
   "version": 2,
   "name": "medigo-app",
-  "buildCommand": "pnpm install && pnpm --filter @workspace/frontend run build",
+  "installCommand": "corepack enable pnpm && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/frontend run build",
   "outputDirectory": "frontend/static-build",
   "env": {
-    "PNPM_HOME": "/root/.pnpm"
+    "PNPM_HOME": "/root/.pnpm",
+    "NODE_ENV": "production"
   },
-  "installCommand": "pnpm install --frozen-lockfile",
   "routes": [
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
