@@ -15,8 +15,10 @@
 ### Step 3: Environment Variables
 Render automatically set karega:
 - `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Auto-generated secret
+- `SESSION_SECRET` - Auto-generated secret (do not store this value in source control)
 - `PORT` - 8080
+
+> Note: secrets set by Render are managed in the app environment and should not be copied into code or committed to GitHub.
 
 ### Step 4: API URL Update Karein
 `artifacts/mobile/lib/api-client.ts` mein:
