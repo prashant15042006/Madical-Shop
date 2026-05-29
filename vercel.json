@@ -3,13 +3,13 @@
   "version": 2,
   "name": "medigo-app",
   "framework": null,
-  "buildCommand": "echo 'Static site'",
-  "outputDirectory": "artifacts/web-landing",
+  "buildCommand": "mkdir -p dist && cp artifacts/web-landing/index.html dist/index.html",
+  "outputDirectory": "dist",
   "installCommand": "echo 'No install needed'",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/$1"
+      "destination": "/index.html"
     }
   ]
 }
