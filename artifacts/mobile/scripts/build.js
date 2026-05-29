@@ -71,6 +71,15 @@ function getDeploymentDomain() {
     return stripProtocol(process.env.VERCEL_URL);
   }
 
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return stripProtocol(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  }
+
+  // Fallback for deployment platforms
+  if (process.env.CI || process.env.VERCEL) {
+    return "medigo.vercel.app";
+  }
+
   console.error(
     "ERROR: No deployment domain found. Set REPLIT_INTERNAL_APP_DOMAIN, REPLIT_DEV_DOMAIN, EXPO_PUBLIC_DOMAIN, or VERCEL_URL",
   );
