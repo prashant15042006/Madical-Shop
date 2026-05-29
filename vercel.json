@@ -2,29 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "medigo-app",
-  "buildCommand": "pnpm install && pnpm --filter @workspace/mobile run build",
-  "outputDirectory": "artifacts/mobile/static-build",
   "framework": null,
-  "installCommand": "pnpm install",
-  "env": {
-    "EXPO_PUBLIC_API_BASE_URL": "https://medigo-api.onrender.com",
-    "EXPO_PUBLIC_DOMAIN": "medigo.vercel.app"
-  },
+  "buildCommand": "echo 'Static site'",
+  "outputDirectory": "artifacts/web-landing",
+  "installCommand": "echo 'No install needed'",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/artifacts/mobile/static-build/$1"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
+      "destination": "/$1"
     }
   ]
 }
