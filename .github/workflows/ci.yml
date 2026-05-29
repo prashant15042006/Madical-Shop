@@ -32,7 +32,7 @@ jobs:
         run: pnpm run typecheck:libs
 
       - name: Build API server
-        run: pnpm --filter @workspace/api-server run build
+        run: pnpm --filter @workspace/backend run build
 
       - name: Build mobile
-        run: pnpm --filter @workspace/mobile run typecheck
+        run: pnpm --filter @workspace/frontend run typecheck

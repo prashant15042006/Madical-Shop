@@ -8,7 +8,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://postgresql.org)
 
 <p align="center">
-  <img src="artifacts/mobile/assets/images/icon.png" width="120" height="120" alt="MediGo App Icon">
+  <img src="frontend/assets/images/icon.png" width="120" height="120" alt="MediGo App Icon">
 </p>
 
 ## 🌟 Features
@@ -63,23 +63,23 @@
 
 ```
 MediGo
+├─── frontend/           │ Expo React Native app
+│   ├─── app/            │ Screens (customer/shop)
+│   ├─── components/     │ Reusable UI
+│   ├─── contexts/       │ AppContext (React Query)
+│   └─── assets/         │ Images, icons
+├─── backend/            │ Express + PostgreSQL
+│   ├─── src/routes/     │ REST API endpoints
+│   ├─── src/lib/        │ Seed, logger
+│   └─── ...
 ├─── artifacts/
-│   ├─── mobile/          │ Expo React Native app
-│   │   ├─── app/          │ Screens (customer/shop)
-│   │   ├─── components/   │ Reusable UI
-│   │   ├─── contexts/     │ AppContext (React Query)
-│   │   └─── assets/       │ Images, icons
-│   ├─── api-server/      │ Express + PostgreSQL
-│   │   ├─── src/routes/   │ REST API endpoints
-│   │   ├─── src/lib/      │ Seed, logger
-│   │   └─── ...
 │   └─── mockup-sandbox/ │ Canvas preview server
 ├─── lib/
-│   ├─── db/              │ Database schema (Drizzle)
-│   ├─── api-spec/        │ OpenAPI contract
-│   ├─── api-zod/         │ Generated Zod schemas
+│   ├─── db/             │ Database schema (Drizzle)
+│   ├─── api-spec/       │ OpenAPI contract
+│   ├─── api-zod/        │ Generated Zod schemas
 │   └─── api-client-react/ │ Generated React Query hooks
-└─── pnpm-workspace.yaml   │ Monorepo config
+└─── pnpm-workspace.yaml  │ Monorepo config
 ```
 
 ### Single Shared Shop Architecture
@@ -116,10 +116,10 @@ pnpm --filter @workspace/api-spec run codegen
 
 ```bash
 # API server start karein
-pnpm --filter @workspace/api-server run dev
+pnpm --filter @workspace/backend run dev
 
 # Mobile app start karein
-pnpm --filter @workspace/mobile run dev
+pnpm --filter @workspace/frontend run dev
 ```
 
 ### 3. Type Check
@@ -167,17 +167,17 @@ PORT=8080
 ## 📷 Screenshots
 
 <p align="center">
-  <img src="artifacts/mobile/assets/screenshots/home.png" width="200" alt="Home Screen">
-  <img src="artifacts/mobile/assets/screenshots/customer-dashboard.png" width="200" alt="Customer Dashboard">
-  <img src="artifacts/mobile/assets/screenshots/buy.png" width="200" alt="Buy Screen">
-  <img src="artifacts/mobile/assets/screenshots/payment.png" width="200" alt="Payment Screen">
+  <img src="frontend/assets/screenshots/home.png" width="200" alt="Home Screen">
+  <img src="frontend/assets/screenshots/customer-dashboard.png" width="200" alt="Customer Dashboard">
+  <img src="frontend/assets/screenshots/buy.png" width="200" alt="Buy Screen">
+  <img src="frontend/assets/screenshots/payment.png" width="200" alt="Payment Screen">
 </p>
 
 ## 🚀 Deployment
 
 ### Play Store / Amazon App Store
 
-Complete upload guide: [PLAY_STORE_UPLOAD.md](artifacts/mobile/PLAY_STORE_UPLOAD.md)
+Complete upload guide: [PLAY_STORE_UPLOAD.md](frontend/PLAY_STORE_UPLOAD.md)
 
 ### API Server
 

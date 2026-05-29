@@ -14,7 +14,8 @@ import type {
   UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
-} from "@tanstack/react-query";
+} 
+from "@tanstack/react-query";
 
 import type {
   CreateMedicineBody,

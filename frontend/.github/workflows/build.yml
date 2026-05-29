@@ -29,7 +29,7 @@ jobs:
         run: pnpm run typecheck
 
       - name: Build API server
-        run: pnpm --filter @workspace/api-server run build
+        run: pnpm --filter @workspace/backend run build
 
       # Uncomment for EAS build (needs EXPO_TOKEN secret)
       # - name: Setup EAS
@@ -39,4 +39,4 @@ jobs:
       #     token: ${{ secrets.EXPO_TOKEN }}
       #
       # - name: Build Android APK
-      #   run: cd artifacts/mobile && eas build --platform android --profile preview --non-interactive
+      #   run: cd frontend && eas build --platform android --profile preview --non-interactive
