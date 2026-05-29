@@ -1,15 +1,5 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "medigo-app",
-  "framework": null,
-  "buildCommand": "mkdir -p dist && cp artifacts/web-landing/index.html dist/index.html",
-  "outputDirectory": "dist",
-  "installCommand": "echo 'No install needed'",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "public": true
 }
