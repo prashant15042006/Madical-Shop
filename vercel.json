@@ -1,5 +1,17 @@
 {
-  "version": 2,
+  "version": 3,
   "name": "medigo-app",
-  "public": true
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/static-build"
+      }
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/frontend/static-build/index.html" }
+  ]
 }

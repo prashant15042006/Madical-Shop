@@ -7,8 +7,8 @@ services:
     buildCommand: |
       npm install -g pnpm@9
       pnpm install
-      pnpm --filter @workspace/api-server run build
-    startCommand: pnpm --filter @workspace/api-server run start
+      pnpm --filter @workspace/backend run build
+    startCommand: pnpm --filter @workspace/backend run start
     envVars:
       - key: NODE_ENV
         value: production

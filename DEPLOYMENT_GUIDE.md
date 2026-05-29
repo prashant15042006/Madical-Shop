@@ -37,8 +37,8 @@ Ya `EXPO_PUBLIC_API_BASE_URL` environment variable set karein.
 ### Step 2: Project Import Karein
 1. **Add New Project** → GitHub repo select karein
 2. **Framework Preset**: Other
-3. **Build Command**: `pnpm install && pnpm --filter @workspace/mobile run build`
-4. **Output Directory**: `artifacts/mobile/static-build`
+3. **Build Command**: `pnpm install && pnpm --filter @workspace/frontend run build`
+4. **Output Directory**: `frontend/static-build`
 5. **Environment Variables**:
    - `EXPO_PUBLIC_API_BASE_URL`: `https://medigo-api.onrender.com`
 

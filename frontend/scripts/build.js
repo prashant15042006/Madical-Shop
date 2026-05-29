@@ -86,6 +86,30 @@ function getDeploymentDomain() {
   process.exit(1);
 }
 
+function getAppName() {
+  try {
+    const appJsonPath = path.join(projectRoot, "app.json");
+    const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf-8"));
+    return appJson.expo?.name || "MediGo";
+  } catch {
+    return "MediGo";
+  }
+}
+
+function writeStaticLandingPage(baseUrl, appName) {
+  const templatePath = path.resolve(__dirname, "templates", "landing-page.html");
+  const outputPath = path.join(projectRoot, "static-build", "index.html");
+  const template = fs.readFileSync(templatePath, "utf-8");
+  const host = new URL(baseUrl).host;
+  const html = template
+    .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
+    .replace(/EXPS_URL_PLACEHOLDER/g, host)
+    .replace(/APP_NAME_PLACEHOLDER/g, appName);
+
+  fs.writeFileSync(outputPath, html);
+  console.log(`Created static index page: ${outputPath}`);
+}
+
 function prepareDirectories(timestamp) {
   console.log("Preparing build directories...");
 
@@ -568,6 +592,8 @@ async function main() {
 
   console.log("Updating manifests and creating landing page...");
   updateManifests(manifests, timestamp, baseUrl, assetsByHash);
+
+  writeStaticLandingPage(baseUrl, getAppName());
 
   console.log("Build complete! Deploy to:", baseUrl);
 
