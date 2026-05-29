@@ -55,35 +55,33 @@ function stripProtocol(domain) {
 }
 
 function getDeploymentDomain() {
-  if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
-    return stripProtocol(process.env.REPLIT_INTERNAL_APP_DOMAIN);
+  const domainEnv =
+    process.env.DEPLOYMENT_DOMAIN ||
+    process.env.REPLIT_INTERNAL_APP_DOMAIN ||
+    process.env.REPLIT_DEV_DOMAIN ||
+    process.env.EXPO_PUBLIC_DOMAIN ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.URL ||
+    process.env.NOW_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.RENDER_INTERNAL_HOSTNAME;
+
+  if (domainEnv) {
+    return stripProtocol(domainEnv);
   }
 
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return stripProtocol(process.env.REPLIT_DEV_DOMAIN);
-  }
-
-  if (process.env.EXPO_PUBLIC_DOMAIN) {
-    return stripProtocol(process.env.EXPO_PUBLIC_DOMAIN);
-  }
-
-  if (process.env.VERCEL_URL) {
-    return stripProtocol(process.env.VERCEL_URL);
-  }
-
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return stripProtocol(process.env.VERCEL_PROJECT_PRODUCTION_URL);
-  }
-
-  // Fallback for deployment platforms
-  if (process.env.CI || process.env.VERCEL) {
+  if (process.env.CI || process.env.VERCEL || process.env.RENDER) {
+    console.warn(
+      "WARNING: No deployment domain env var found; falling back to medigo.vercel.app",
+    );
     return "medigo.vercel.app";
   }
 
-  console.error(
-    "ERROR: No deployment domain found. Set REPLIT_INTERNAL_APP_DOMAIN, REPLIT_DEV_DOMAIN, EXPO_PUBLIC_DOMAIN, or VERCEL_URL",
+  console.warn(
+    "WARNING: No deployment domain found. Using localhost:3000 for local build output.",
   );
-  process.exit(1);
+  return "localhost:3000";
 }
 
 function getAppName() {
