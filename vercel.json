@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install -g pnpm@9 && pnpm install --prod=false",
+  "installCommand": "npm install -g pnpm@10 && pnpm install --prod=false",
   "buildCommand": "pnpm --filter @workspace/frontend run build",
   "outputDirectory": "frontend/static-build",
   "routes": [

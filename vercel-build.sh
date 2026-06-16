@@ -3,7 +3,7 @@ set -e
 
 echo "=== Vercel Build Script for MediGo ==="
 echo "Install pnpm globally if not available..."
-npm install -g pnpm@9
+npm install -g pnpm@10
 
 echo "Installing dependencies with pnpm (include devDependencies)..."
 pnpm install --frozen-lockfile --prod=false

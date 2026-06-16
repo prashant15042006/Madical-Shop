@@ -5,7 +5,7 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      npm install -g pnpm@9
+      npm install -g pnpm@10
       pnpm install
       pnpm --filter @workspace/backend run build
     startCommand: pnpm --filter @workspace/backend run start
