@@ -2,12 +2,11 @@
 .git
 .gitignore
 
-# Dependencies
+# Dependencies (Vercel installs fresh)
 node_modules
 .pnpm-store
-pnpm-lock.yaml
 
-# Build artifacts (except what Vercel needs)
+# Build artifacts
 dist
 .next
 .nuxt
@@ -15,33 +14,23 @@ build
 coverage
 .pytest_cache
 .venv
+.metro-cache
+frontend/static-build
 
-# Development
+# Local env files (real env vars come from Vercel project settings)
 .env.local
 .env.development
-.replit*
-.metro-cache
 
 # Replit
-artifacts
+.replit
+.replitignore
+replit.nix
+replit.md
 attached_assets
 
-# Documentation
-*.md
-README.md
-DEPLOYMENT_GUIDE.md
-GITHUB_PUSH_GUIDE.md
-
-# Render/other CI
+# Render/other platforms
 render.yaml
-
-# Test files
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-__tests__
-tests
+push-to-github.sh
 
 # IDE
 .vscode
@@ -53,12 +42,7 @@ tests
 .DS_Store
 Thumbs.db
 
-# Backend (not needed for Vercel frontend build)
-backend/
-lib/
-scripts/
-
-# Other platforms
-tsconfig.base.json
-index.html
-push-to-github.sh
+# NOTE: Do NOT ignore pnpm-lock.yaml, pnpm-workspace.yaml, or the workspace
+# package directories (lib/, scripts/, artifacts/, backend/). The frontend
+# build depends on the @workspace/* packages in lib/, and pnpm needs the
+# lockfile + workspace manifest to resolve them.
