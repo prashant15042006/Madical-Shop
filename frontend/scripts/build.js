@@ -594,6 +594,16 @@ async function main() {
 
   writeStaticLandingPage(baseUrl, getAppName());
 
+  const rootStaticBuild = path.join(workspaceRoot, "static-build");
+  const frontendStaticBuild = path.join(projectRoot, "static-build");
+  if (fs.existsSync(frontendStaticBuild)) {
+    if (fs.existsSync(rootStaticBuild)) {
+      fs.rmSync(rootStaticBuild, { recursive: true, force: true });
+    }
+    fs.cpSync(frontendStaticBuild, rootStaticBuild, { recursive: true });
+    console.log("Mirrored static-build to workspace root:", rootStaticBuild);
+  }
+
   console.log("Build complete! Deploy to:", baseUrl);
 
   if (metroProcess) {
