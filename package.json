@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
+    "dev:backend": "pnpm --filter @workspace/backend run dev",
+    "dev:frontend": "pnpm --filter @workspace/frontend run start",
+    "build:backend": "pnpm --filter @workspace/backend run build",
     "build": "pnpm --filter @workspace/frontend run build",
     "build:local": "pnpm run typecheck && pnpm -r --filter \"./backend\" --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run build",
     "typecheck:libs": "tsc --build",
