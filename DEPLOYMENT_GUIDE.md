@@ -20,13 +20,12 @@ Render automatically set karega:
 
 > Note: secrets set by Render are managed in the app environment and should not be copied into code or committed to GitHub.
 
-### Step 4: API URL Update Karein
-`artifacts/mobile/lib/api-client.ts` mein:
-```javascript
-const PROD_API_URL = "https://medigo-api.onrender.com";
-```
+### Step 4: Render URL Note Karein
+Deploy hone ke baad Render aapko public URL dega, jaise:
+`https://medigo-api.onrender.com`
 
-Ya `EXPO_PUBLIC_API_BASE_URL` environment variable set karein.
+Is URL ko Vercel deployment mein `EXPO_PUBLIC_API_BASE_URL` environment variable ke roop mein use karenge.
+(Ye already [`frontend/lib/api-client.ts`](frontend/lib/api-client.ts) mein fallback ke taur par bhi set hai).
 
 ---
 

@@ -5,9 +5,8 @@
 # Dependencies
 node_modules
 .pnpm-store
-pnpm-lock.yaml
 
-# Build artifacts (except what Vercel needs)
+# Build artifacts
 dist
 .next
 .nuxt
@@ -17,22 +16,16 @@ coverage
 .venv
 
 # Development
-.env.local
-.env.development
-.replit*
+.env
+.env.*
+!.env.example
 .metro-cache
 
-# Replit
-artifacts
-attached_assets
-
 # Documentation
-*.md
-README.md
 DEPLOYMENT_GUIDE.md
 GITHUB_PUSH_GUIDE.md
 
-# Render/other CI
+# Render / other CI
 render.yaml
 
 # Test files
@@ -43,22 +36,9 @@ render.yaml
 __tests__
 tests
 
-# IDE
+# IDE & OS
 .vscode
 .idea
-*.swp
-*.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Backend (not needed for Vercel frontend build)
-backend/
-lib/
-scripts/
-
-# Other platforms
-tsconfig.base.json
-index.html
-push-to-github.sh
