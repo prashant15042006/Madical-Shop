@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "name": "medigo-app",
+  "installCommand": "npm install -g pnpm && pnpm install",
+  "buildCommand": "pnpm --filter @workspace/frontend run build",
+  "outputDirectory": "frontend/static-build",
+  "nodeVersion": "20.x",
+  "env": {
+    "PNPM_HOME": ".pnpm",
+    "NODE_ENV": "production"
+  },
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
