@@ -15,107 +15,130 @@ type Props = {
 export function MedicineCard({ medicine, onBuy, onPress }: Props) {
   const colors = useColors();
   const outOfStock = medicine.stock <= 0;
+  const isLowStock = !outOfStock && medicine.stock <= 5;
   const hasDiscount = (medicine.discountPercent ?? 0) > 0;
   const final = finalPrice(medicine.price, medicine.discountPercent);
+  const savings = hasDiscount ? +(medicine.price - final).toFixed(0) : 0;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={onPress ?? (outOfStock ? undefined : onBuy)}
       style={({ pressed }) => [
         styles.card,
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
-          opacity: pressed ? 0.95 : 1,
+          opacity: pressed ? 0.94 : 1,
         },
       ]}
     >
-      <View
-        style={[styles.imageWrap, { backgroundColor: colors.secondary }]}
-      >
+      {/* Product Image Box */}
+      <View style={styles.imageBox}>
         <Image
           source={medicine.image}
           style={styles.image}
-          contentFit="cover"
-          transition={200}
+          contentFit="contain"
+          transition={150}
         />
+
+        {/* Discount Badge */}
         {hasDiscount ? (
-          <View style={[styles.discountBadge, { backgroundColor: "#ef4444" }]}>
+          <View style={styles.discountBadge}>
             <Text style={styles.discountText}>
               {medicine.discountPercent}% OFF
             </Text>
           </View>
         ) : null}
-        {medicine.otc ? (
-          <View
-            style={[styles.tag, { backgroundColor: colors.accent }]}
+
+        {/* OTC / Rx Badge */}
+        <View
+          style={[
+            styles.typeBadge,
+            {
+              backgroundColor: medicine.otc ? "#ecfdf5" : "#eff6ff",
+              borderColor: medicine.otc ? "#a7f3d0" : "#bfdbfe",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.typeBadgeText,
+              { color: medicine.otc ? "#047857" : "#1d4ed8" },
+            ]}
           >
-            <Text style={[styles.tagText, { color: colors.accentForeground }]}>
-              OTC
-            </Text>
-          </View>
-        ) : null}
+            {medicine.otc ? "OTC" : "Rx"}
+          </Text>
+        </View>
       </View>
 
+      {/* Content Info */}
       <View style={styles.info}>
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={[styles.name, { color: colors.foreground }]}
         >
           {medicine.name}
         </Text>
+
         <Text
           numberOfLines={1}
           style={[styles.desc, { color: colors.mutedForeground }]}
         >
-          {medicine.description}
+          {medicine.description || "Swasthya & dekhbhal ke liye"}
         </Text>
+
+        {/* Stock Status */}
+        <View style={styles.stockRow}>
+          {outOfStock ? (
+            <Text style={styles.outOfStockText}>🔴 Abhi uplabdh nahi</Text>
+          ) : isLowStock ? (
+            <Text style={styles.lowStockText}>⚡ Sirf {medicine.stock} bache hain</Text>
+          ) : (
+            <Text style={styles.inStockText}>🟢 Stock uplabdh</Text>
+          )}
+        </View>
+
+        {/* Price & Action Row */}
         <View style={styles.footer}>
           <View style={styles.priceCol}>
-            <Text style={[styles.price, { color: colors.foreground }]}>
-              ₹{final}
-            </Text>
-            {hasDiscount ? (
-              <Text
-                style={[styles.priceOld, { color: colors.mutedForeground }]}
-              >
-                ₹{medicine.price}
+            <View style={styles.priceLine}>
+              <Text style={[styles.price, { color: colors.foreground }]}>
+                ₹{final}
               </Text>
+              {hasDiscount ? (
+                <Text
+                  style={[styles.priceOld, { color: colors.mutedForeground }]}
+                >
+                  ₹{medicine.price}
+                </Text>
+              ) : null}
+            </View>
+            {hasDiscount && savings > 0 ? (
+              <Text style={styles.savingsText}>Bachat ₹{savings}</Text>
             ) : null}
           </View>
+
+          {/* Blinkit Style ADD Button */}
           <Pressable
             onPress={outOfStock ? undefined : onBuy}
             disabled={outOfStock}
             style={({ pressed }) => [
-              styles.buyBtn,
+              styles.addBtn,
               {
-                backgroundColor: outOfStock
-                  ? colors.muted
-                  : pressed
-                    ? colors.accentForeground
-                    : colors.primary,
+                backgroundColor: outOfStock ? "#f1f5f9" : "#0aa672",
+                borderColor: outOfStock ? "#cbd5e1" : "#0aa672",
+                opacity: pressed ? 0.85 : 1,
               },
             ]}
           >
-            <Feather
-              name={outOfStock ? "x" : "shopping-bag"}
-              size={14}
-              color={
-                outOfStock ? colors.mutedForeground : colors.primaryForeground
-              }
-            />
-            <Text
-              style={[
-                styles.buyText,
-                {
-                  color: outOfStock
-                    ? colors.mutedForeground
-                    : colors.primaryForeground,
-                },
-              ]}
-            >
-              {outOfStock ? "Out" : "Buy"}
-            </Text>
+            {outOfStock ? (
+              <Text style={styles.addBtnTextDisabled}>Out</Text>
+            ) : (
+              <>
+                <Feather name="plus" size={13} color="#ffffff" />
+                <Text style={styles.addBtnText}>ADD</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </View>
@@ -125,92 +148,142 @@ export function MedicineCard({ medicine, onBuy, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 12,
+    padding: 10,
     width: "100%",
     flexDirection: "column",
-    gap: 10,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  imageWrap: {
+  imageBox: {
     width: "100%",
-    aspectRatio: 1,
-    borderRadius: 999,
+    aspectRatio: 1.15,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    padding: 8,
   },
   image: {
-    width: "100%",
-    height: "100%",
-  },
-  tag: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  tagText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 10,
-    letterSpacing: 0.5,
+    width: "88%",
+    height: "88%",
   },
   discountBadge: {
     position: "absolute",
-    top: 8,
-    left: 8,
-    paddingHorizontal: 8,
+    top: 6,
+    left: 6,
+    backgroundColor: "#059669",
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: 6,
   },
   discountText: {
     fontFamily: "Inter_700Bold",
     fontSize: 10,
     color: "#ffffff",
+    letterSpacing: 0.3,
+  },
+  typeBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  typeBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
     letterSpacing: 0.4,
   },
   info: {
-    gap: 2,
+    gap: 4,
+    flex: 1,
   },
   name: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 18,
+    minHeight: 36,
   },
   desc: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
   },
+  stockRow: {
+    marginTop: 2,
+  },
+  inStockText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "#059669",
+  },
+  lowStockText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "#d97706",
+  },
+  outOfStockText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "#dc2626",
+  },
   footer: {
-    marginTop: 8,
+    marginTop: 6,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-end",
   },
   priceCol: {
     flexDirection: "column",
+    gap: 1,
+  },
+  priceLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 5,
   },
   price: {
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontSize: 15,
   },
   priceOld: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_400Regular",
     fontSize: 11,
     textDecorationLine: "line-through",
   },
-  buyBtn: {
+  savingsText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+    color: "#059669",
+  },
+  addBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
+    gap: 3,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 64,
   },
-  buyText: {
-    fontFamily: "Inter_600SemiBold",
+  addBtnText: {
+    fontFamily: "Inter_700Bold",
     fontSize: 12,
+    color: "#ffffff",
+  },
+  addBtnTextDisabled: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#94a3b8",
   },
 });

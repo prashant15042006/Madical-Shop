@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,13 +35,34 @@ export default function ShopMedicines() {
   const insets = useSafeAreaInsets();
   const { medicines, addMedicine, updateMedicine, removeMedicine } = useApp();
   const [editing, setEditing] = useState<Medicine | "new" | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
+
+  const totalCount = medicines.length;
+  const lowStockCount = medicines.filter((m) => m.stock <= 5).length;
+  const discountCount = medicines.filter(
+    (m) => (m.discountPercent ?? 0) > 0,
+  ).length;
+
+  const displayList = medicines.filter((m) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      m.name.toLowerCase().includes(q) ||
+      m.description.toLowerCase().includes(q)
+    );
+  });
+
+  const changeStock = async (item: Medicine, delta: number) => {
+    const nextStock = Math.max(0, item.stock + delta);
+    await updateMedicine(item.id, { stock: nextStock });
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <FlatList
-        data={medicines}
+        data={displayList}
         keyExtractor={(m) => m.id}
         contentContainerStyle={{
           padding: 16,
@@ -48,50 +70,95 @@ export default function ShopMedicines() {
           gap: 12,
         }}
         ListHeaderComponent={
-          <View style={{ paddingBottom: 8 }}>
-            <Text
-              style={[styles.subtitle, { color: colors.mutedForeground }]}
+          <View style={{ gap: 14, paddingBottom: 6 }}>
+            {/* Top Stat Summary Cards */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" }]}>
+                <Text style={styles.statNumber}>{totalCount}</Text>
+                <Text style={styles.statLabel}>Kul Dawaiyan</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: lowStockCount > 0 ? "#fffbeb" : "#f1f5f9", borderColor: lowStockCount > 0 ? "#fde68a" : "#e2e8f0" }]}>
+                <Text style={[styles.statNumber, { color: lowStockCount > 0 ? "#b45309" : "#475569" }]}>
+                  {lowStockCount}
+                </Text>
+                <Text style={styles.statLabel}>Low Stock (≤5)</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: "#fdf2f8", borderColor: "#fbcfe8" }]}>
+                <Text style={[styles.statNumber, { color: "#be185d" }]}>{discountCount}</Text>
+                <Text style={styles.statLabel}>Offers / Chhoot</Text>
+              </View>
+            </View>
+
+            {/* Prominent Add Medicine Button */}
+            <Pressable
+              onPress={() => setEditing("new")}
+              style={({ pressed }) => [
+                styles.topAddBtn,
+                {
+                  opacity: pressed ? 0.88 : 1,
+                },
+              ]}
             >
-              Medicine add karein, price/discount/stock update karein
-            </Text>
+              <Feather name="plus-circle" size={20} color="#ffffff" />
+              <Text style={styles.topAddBtnText}>➕ Nayi Dawai Jodein (Add Medicine)</Text>
+            </Pressable>
+
+            {/* Search Bar for Dukandar */}
+            <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Feather name="search" size={16} color={colors.mutedForeground} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Dawai ka naam search karein..."
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.searchInput, { color: colors.foreground }]}
+              />
+              {searchQuery ? (
+                <Pressable onPress={() => setSearchQuery("")} hitSlop={6}>
+                  <Feather name="x-circle" size={16} color={colors.mutedForeground} />
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         }
         ListEmptyComponent={
           <Empty
             icon="grid"
-            title="Inventory empty"
-            subtitle="Pehli medicine add karein"
+            title="Dawai nahi mili"
+            subtitle={searchQuery ? `"${searchQuery}" naam se koi dawai nahi hai` : "Pehli medicine add karein"}
           />
         }
         renderItem={({ item }) => {
           const final = finalPrice(item.price, item.discountPercent);
           const hasDiscount = (item.discountPercent ?? 0) > 0;
+          const isLow = item.stock <= 5;
+
           return (
             <View
               style={[
-                styles.row,
+                styles.itemCard,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <View
-                style={[
-                  styles.imageWrap,
-                  { backgroundColor: colors.secondary },
-                ]}
-              >
+              {/* Image Container */}
+              <View style={styles.itemImageBox}>
                 <Image
                   source={item.image}
-                  style={{ width: "100%", height: "100%" }}
-                  contentFit="cover"
+                  style={styles.itemImage}
+                  contentFit="contain"
                 />
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
+
+              {/* Medicine Info */}
+              <View style={{ flex: 1, gap: 3 }}>
                 <Text
                   style={[styles.name, { color: colors.foreground }]}
                   numberOfLines={1}
                 >
                   {item.name}
                 </Text>
+
+                {/* Price & Discount display */}
                 <View style={styles.priceRow}>
                   <Text style={[styles.priceFinal, { color: colors.foreground }]}>
                     ₹{final}
@@ -106,52 +173,81 @@ export default function ShopMedicines() {
                       >
                         ₹{item.price}
                       </Text>
-                      <View
-                        style={[
-                          styles.discountTag,
-                          { backgroundColor: "#fee2e2" },
-                        ]}
-                      >
-                        <Text style={styles.discountTagText}>
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountBadgeText}>
                           {item.discountPercent}% OFF
                         </Text>
                       </View>
                     </>
                   ) : null}
                 </View>
-                <Text
-                  style={[styles.metaSub, { color: colors.mutedForeground }]}
-                  numberOfLines={1}
-                >
-                  Stock {item.stock} · {item.otc ? "OTC" : "Rx"}
-                </Text>
+
+                {/* Quick Stock Stepper right on card */}
+                <View style={styles.stockContainer}>
+                  <View style={styles.stockStepper}>
+                    <Pressable
+                      onPress={() => changeStock(item, -1)}
+                      style={styles.stockStepBtn}
+                      hitSlop={6}
+                    >
+                      <Feather name="minus" size={14} color="#475569" />
+                    </Pressable>
+                    <Text style={[styles.stockText, { color: isLow ? "#dc2626" : colors.foreground }]}>
+                      Stock: {item.stock}
+                    </Text>
+                    <Pressable
+                      onPress={() => changeStock(item, 1)}
+                      style={styles.stockStepBtn}
+                      hitSlop={6}
+                    >
+                      <Feather name="plus" size={14} color="#0aa672" />
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.otcTag}>
+                    <Text style={styles.otcTagText}>
+                      {item.otc ? "OTC" : "Rx"}
+                    </Text>
+                  </View>
+                </View>
               </View>
-              <Pressable
-                onPress={() => setEditing(item)}
-                hitSlop={6}
-                style={[
-                  styles.iconBtn,
-                  { backgroundColor: colors.secondary },
-                ]}
-              >
-                <Feather name="edit-2" size={16} color={colors.primary} />
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  Alert.alert("Confirm", `${item.name} hatana hai?`, [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Hatao",
-                      style: "destructive",
-                      onPress: () => removeMedicine(item.id),
-                    },
-                  ]);
-                }}
-                hitSlop={6}
-                style={[styles.iconBtn, { backgroundColor: "#fee2e2" }]}
-              >
-                <Feather name="trash-2" size={16} color={colors.destructive} />
-              </Pressable>
+
+              {/* Action Buttons: Edit & Delete */}
+              <View style={styles.actionsCol}>
+                <Pressable
+                  onPress={() => setEditing(item)}
+                  hitSlop={6}
+                  style={[
+                    styles.editBtn,
+                    { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" },
+                  ]}
+                >
+                  <Feather name="edit-2" size={14} color="#1d4ed8" />
+                  <Text style={styles.editBtnText}>Edit</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      "Dawai Hatayein?",
+                      `Kya aap sach me "${item.name}" ko dukan se hatana chahte hain?`,
+                      [
+                        { text: "Nahi (Cancel)", style: "cancel" },
+                        {
+                          text: "Hatao (Delete)",
+                          style: "destructive",
+                          onPress: () => removeMedicine(item.id),
+                        },
+                      ],
+                    );
+                  }}
+                  hitSlop={6}
+                  style={[styles.deleteBtn, { backgroundColor: "#fef2f2", borderColor: "#fecaca" }]}
+                >
+                  <Feather name="trash-2" size={14} color="#dc2626" />
+                  <Text style={styles.deleteBtnText}>Hatao</Text>
+                </Pressable>
+              </View>
             </View>
           );
         }}
@@ -549,23 +645,91 @@ function EditSheet({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  subtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
+  statsRow: {
+    flexDirection: "row",
+    gap: 8,
   },
-  row: {
+  statCard: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  statNumber: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: "#059669",
+  },
+  statLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "#475569",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  topAddBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#0aa672",
+    paddingVertical: 13,
+    borderRadius: 12,
+    shadowColor: "#0aa672",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  topAddBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    color: "#ffffff",
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    padding: 0,
+  },
+  itemCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 12,
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
-  imageWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 999,
-    overflow: "hidden",
+  itemImageBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    padding: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  itemImage: {
+    width: "100%",
+    height: "100%",
   },
   name: {
     fontFamily: "Inter_600SemiBold",
@@ -579,34 +743,91 @@ const styles = StyleSheet.create({
   },
   priceFinal: {
     fontFamily: "Inter_700Bold",
-    fontSize: 14,
+    fontSize: 15,
   },
   priceOld: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_400Regular",
     fontSize: 11,
     textDecorationLine: "line-through",
   },
-  discountTag: {
+  discountBadge: {
+    backgroundColor: "#ecfdf5",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
   },
-  discountTagText: {
+  discountBadgeText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 9,
-    color: "#dc2626",
-    letterSpacing: 0.4,
+    fontSize: 10,
+    color: "#059669",
   },
-  metaSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  stockContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  stockStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 6,
+    backgroundColor: "#f8fafc",
+  },
+  stockStepBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  stockText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    paddingHorizontal: 4,
+  },
+  otcTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "#f1f5f9",
+  },
+  otcTagText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 9,
+    color: "#475569",
+  },
+  actionsCol: {
+    gap: 6,
+    alignItems: "flex-end",
+  },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  editBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#1d4ed8",
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  deleteBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#dc2626",
   },
   fab: {
     position: "absolute",
@@ -661,9 +882,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   previewBox: {
-    width: 96,
-    height: 96,
-    borderRadius: 999,
+    width: 80,
+    height: 80,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 6,
+    backgroundColor: "#f8fafc",
     overflow: "hidden",
   },
   uploadBtn: {
@@ -671,9 +896,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   uploadBtnText: {
     fontFamily: "Inter_600SemiBold",
@@ -684,14 +909,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
   },
   removeImgText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 11,
   },
   helpText: {
     fontFamily: "Inter_400Regular",
@@ -702,18 +927,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     padding: 8,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 2,
     width: 84,
   },
   imgOptionImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 999,
+    width: 50,
+    height: 50,
+    borderRadius: 8,
   },
   imgOptionLabel: {
     fontFamily: "Inter_500Medium",
-    fontSize: 11,
+    fontSize: 10,
+    textAlign: "center",
   },
   pricePreview: {
     flexDirection: "row",
@@ -735,7 +961,7 @@ const styles = StyleSheet.create({
   },
   previewFinal: {
     fontFamily: "Inter_700Bold",
-    fontSize: 22,
+    fontSize: 20,
   },
   previewOld: {
     fontFamily: "Inter_500Medium",

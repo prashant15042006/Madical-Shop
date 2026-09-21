@@ -16,14 +16,14 @@ export const MEDICINE_IMAGES: Record<string, ImageSourcePropType> = {
   eyedrops: require("../assets/images/med_eyedrops.png"),
 };
 
-export const IMAGE_OPTIONS: { key: string; label: string }[] = [
-  { key: "paracetamol", label: "Tablet" },
-  { key: "capsule", label: "Capsule" },
-  { key: "syrup", label: "Syrup" },
-  { key: "blister", label: "Blister Pack" },
-  { key: "inhaler", label: "Inhaler" },
-  { key: "vitamin", label: "Vitamin" },
-  { key: "eyedrops", label: "Eye Drops" },
+export const IMAGE_OPTIONS: { key: string; label: string; icon: string }[] = [
+  { key: "paracetamol", label: "Tablets (Goli)", icon: "💊" },
+  { key: "capsule", label: "Capsules", icon: "💊" },
+  { key: "syrup", label: "Syrup (Peene ki)", icon: "🧴" },
+  { key: "blister", label: "Strip / Pack", icon: "📦" },
+  { key: "inhaler", label: "Inhaler (Saans)", icon: "🫁" },
+  { key: "vitamin", label: "Vitamins & Energy", icon: "🌿" },
+  { key: "eyedrops", label: "Eye Drops", icon: "👁️" },
 ];
 
 export function resolveImage(

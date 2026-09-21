@@ -161,12 +161,12 @@ export default function BuyScreen() {
         ]}
       >
         <View
-          style={[styles.imageWrap, { backgroundColor: colors.secondary }]}
+          style={[styles.imageWrap, { backgroundColor: "#f8fafc" }]}
         >
           <Image
             source={medicine.image}
             style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
+            contentFit="contain"
           />
         </View>
         <View style={styles.heroInfo}>
@@ -434,7 +434,10 @@ const styles = StyleSheet.create({
   imageWrap: {
     width: 96,
     height: 96,
-    borderRadius: 999,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 6,
     overflow: "hidden",
   },
   heroInfo: {

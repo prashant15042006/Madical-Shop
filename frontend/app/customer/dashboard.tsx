@@ -54,22 +54,18 @@ export default function CustomerDashboard() {
     return list;
   }, [medicines, query, mode, category, sort]);
 
-  const title = mode === "otc" ? "OTC Medicines" : "All Medicines";
+  const title = mode === "otc" ? "OTC Medicines" : "MediGo Pharmacy";
   const subtitle =
     mode === "otc"
-      ? "Bina parche ke milne wali dawai"
-      : "Naam ya kaam likhke search karein";
+      ? "Bina doctor ke parche wali zaroori dawai"
+      : "Original dawaiyan seedha aapke darwaze tak";
 
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 8;
 
   const emptySubtitle = useMemo(() => {
-    if (query && category)
-      return `"${query}" naam se koi ${getCategoryLabel(category)} available nahi hai`;
-    if (query)
-      return `"${query}" naam se koi dawai available nahi hai`;
-    if (category)
-      return `Is category mein abhi koi dawai nahi hai`;
-    return "Iss category me abhi koi dawai nahi hai";
+    if (query) return `"${query}" se milti-julti koi dawai nahi mili`;
+    if (category) return "Is category me abhi koi dawai stock me nahi hai";
+    return "Abhi store par koi dawai uplabdh nahi hai";
   }, [query, category]);
 
   return (
@@ -81,27 +77,54 @@ export default function CustomerDashboard() {
         columnWrapperStyle={styles.col}
         contentContainerStyle={[
           styles.list,
-          { paddingBottom: bottomPad + 100 },
+          { paddingBottom: bottomPad + 110 },
         ]}
         ListHeaderComponent={
           <View style={styles.headerWrap}>
-            <Text style={[styles.title, { color: colors.foreground }]}>
-              {title}
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              {subtitle}
-            </Text>
+            {/* Blinkit Style Delivery Banner */}
+            <View style={styles.deliveryBanner}>
+              <View style={styles.deliveryBadge}>
+                <Feather name="zap" size={14} color="#ffffff" />
+                <Text style={styles.deliveryBadgeText}>10-15 MIN EXPRESS</Text>
+              </View>
+              <Text style={styles.deliverySubtext}>
+                🟢 Local Medical Store se Free Delivery
+              </Text>
+            </View>
+
+            <View style={{ height: 12 }} />
+
+            <View style={styles.titleRow}>
+              <View>
+                <Text style={[styles.title, { color: colors.foreground }]}>
+                  {title}
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+                  {subtitle}
+                </Text>
+              </View>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{filtered.length} Items</Text>
+              </View>
+            </View>
+
             <View style={{ height: 14 }} />
-            <SearchBar value={query} onChange={setQuery} />
-            <View style={{ height: 10 }} />
+            <SearchBar
+              value={query}
+              onChange={setQuery}
+              placeholder="Dawai ka naam search karein (e.g. Paracetamol, Dolo)..."
+            />
+
+            <View style={{ height: 12 }} />
             <View style={styles.filterRow}>
               <CategoryFilter selected={category} onChange={setCategory} />
             </View>
-            <View style={{ height: 6 }} />
+
+            <View style={{ height: 8 }} />
             <View style={styles.filterRow}>
               <SortFilter selected={sort} onChange={setSort} />
             </View>
-            <View style={{ height: 8 }} />
+            <View style={{ height: 10 }} />
           </View>
         }
         renderItem={({ item }) => (
@@ -128,23 +151,41 @@ export default function CustomerDashboard() {
         }
       />
 
-      <Pressable
-        onPress={() => router.push("/customer/orders")}
-        style={({ pressed }) => [
-          styles.fab,
-          {
-            backgroundColor: colors.primary,
-            bottom: bottomPad + 16,
-            opacity: pressed ? 0.85 : 1,
-          },
-        ]}
-      >
-        <Feather name="package" size={20} color={colors.primaryForeground} />
-        <Text style={[styles.fabText, { color: colors.primaryForeground }]}>
-          My Orders
-          {orders.length > 0 ? ` (${orders.length})` : ""}
-        </Text>
-      </Pressable>
+      {/* Floating Bottom Bar: Orders & Dukandar switch */}
+      <View style={[styles.bottomBar, { bottom: bottomPad + 12 }]}>
+        <Pressable
+          onPress={() => router.push("/customer/orders")}
+          style={({ pressed }) => [
+            styles.ordersFab,
+            {
+              backgroundColor: "#0aa672",
+              opacity: pressed ? 0.88 : 1,
+            },
+          ]}
+        >
+          <Feather name="package" size={18} color="#ffffff" />
+          <Text style={styles.fabText}>
+            Mere Orders {orders.length > 0 ? `(${orders.length})` : ""}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/shop/medicines")}
+          style={({ pressed }) => [
+            styles.shopSwitchFab,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              opacity: pressed ? 0.88 : 1,
+            },
+          ]}
+        >
+          <Feather name="briefcase" size={16} color={colors.foreground} />
+          <Text style={[styles.shopSwitchText, { color: colors.foreground }]}>
+            Dukandar Portal
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -194,23 +235,101 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     maxWidth: "50%",
   },
-  fab: {
-    position: "absolute",
-    alignSelf: "center",
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 999,
+  deliveryBanner: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 8,
+  },
+  deliveryBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#059669",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  deliveryBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#ffffff",
+    letterSpacing: 0.5,
+  },
+  deliverySubtext: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: "#065f46",
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  countBadge: {
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  countBadgeText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#475569",
+  },
+  bottomBar: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  ordersFab: {
+    flex: 1.2,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     shadowColor: "#0aa672",
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  shopSwitchFab: {
+    flex: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   fabText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: 13,
+    color: "#ffffff",
+  },
+  shopSwitchText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
   },
 });

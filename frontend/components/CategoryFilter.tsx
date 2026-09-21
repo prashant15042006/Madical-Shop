@@ -21,7 +21,7 @@ export function CategoryFilter({ selected, onChange }: Props) {
   const colors = useColors();
 
   const chips = [
-    { key: null, label: ALL_LABEL },
+    { key: null, label: "Sabhi Dawai", icon: "🩺" },
     ...IMAGE_OPTIONS,
   ];
 
@@ -40,21 +40,19 @@ export function CategoryFilter({ selected, onChange }: Props) {
             style={({ pressed }) => [
               styles.chip,
               {
-                backgroundColor: isActive
-                  ? colors.primary
-                  : colors.card,
-                borderColor: isActive ? colors.primary : colors.border,
-                opacity: pressed ? 0.75 : 1,
+                backgroundColor: isActive ? "#0aa672" : colors.card,
+                borderColor: isActive ? "#0aa672" : colors.border,
+                opacity: pressed ? 0.8 : 1,
               },
             ]}
           >
+            <Text style={styles.emoji}>{chip.icon}</Text>
             <Text
               style={[
                 styles.chipText,
                 {
-                  color: isActive
-                    ? colors.primaryForeground
-                    : colors.foreground,
+                  color: isActive ? "#ffffff" : colors.foreground,
+                  fontWeight: isActive ? "700" : "500",
                 },
               ]}
             >
@@ -63,7 +61,7 @@ export function CategoryFilter({ selected, onChange }: Props) {
           </Pressable>
         );
       })}
-      <View style={{ width: 4 }} />
+      <View style={{ width: 8 }} />
     </ScrollView>
   );
 }
@@ -77,10 +75,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 999,
     borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  emoji: {
+    fontSize: 14,
   },
   chipText: {
     fontFamily: "Inter_500Medium",
