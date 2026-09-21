@@ -2,7 +2,7 @@
   "version": 2,
   "installCommand": "npm install -g pnpm && pnpm install",
   "buildCommand": "pnpm --filter @workspace/frontend run build",
-  "outputDirectory": "static-build",
+  "outputDirectory": "frontend/dist",
   "env": {
     "PNPM_HOME": ".pnpm",
     "NODE_ENV": "production"
