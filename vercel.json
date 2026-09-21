@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "npm install -g pnpm && pnpm install",
-  "buildCommand": "pnpm --filter @workspace/frontend run build && node scripts/vercel-copy.js",
+  "buildCommand": "pnpm --filter @workspace/frontend run build && pnpm --filter @workspace/frontend run vercel-postbuild",
   "outputDirectory": "dist",
   "env": {
     "PNPM_HOME": ".pnpm",
