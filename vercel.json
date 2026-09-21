@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "npm install -g pnpm && pnpm install",
-  "buildCommand": "pnpm --filter @workspace/frontend run build && node -e \"const fs=require('fs');if(fs.existsSync('frontend/dist')){if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true,force:true});fs.cpSync('frontend/dist','dist',{recursive:true});console.log('Copied frontend/dist to dist');}\"",
+  "buildCommand": "pnpm --filter @workspace/frontend run build && node scripts/vercel-copy.js",
   "outputDirectory": "dist",
   "env": {
     "PNPM_HOME": ".pnpm",
